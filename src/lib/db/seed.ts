@@ -127,5 +127,7 @@ export async function seedDatabase() {
     );
   }
 
-  console.log("✅ Seed database completed successfully with fixture data.");
+  if (process.env.NODE_ENV !== "test") {
+    console.log("✅ Seed database completed successfully with fixture data.");
+  }
 }

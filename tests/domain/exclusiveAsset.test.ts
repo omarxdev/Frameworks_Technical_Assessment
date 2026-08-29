@@ -50,6 +50,64 @@ describe("Exclusive Asset Availability Engine", () => {
     expect(result.summary.availableAssetCount).toBeGreaterThan(0);
   });
 
+  it("flags an asset whose verification is over 30 days old as confirmation_required", () => {
+    const result = evaluateExclusiveAssetAvailability({
+      productId: "product-hub-door",
+      startDate: "2027-01-20",
+      endDate: "2027-02-20",
+      assets,
+      bookings,
+      holds,
+      outages,
+      clock: FIXTURE_CLOCK_DATE,
+    });
+
+    const doorB = result.assetOptions.find((a) => a.id === "asset-door-b");
+    const doorA = result.assetOptions.find((a) => a.id === "asset-door-a");
+
+    expect(doorB?.availability.state).toBe("confirmation_required");
+    expect(doorB?.availability.verificationStale).toBe(true);
+    expect(doorA?.availability.state).toBe("available");
+    expect(doorA?.availability.verificationStale).toBe(false);
+  });
+
+  it("flags the stale EV screen that carries no advisory note", () => {
+    const result = evaluateExclusiveAssetAvailability({
+      productId: "product-ev-screen",
+      startDate: "2027-03-01",
+      endDate: "2027-04-01",
+      assets,
+      bookings,
+      holds,
+      outages,
+      clock: FIXTURE_CLOCK_DATE,
+    });
+
+    const stale = result.assetOptions.find((a) => a.id === "asset-ev-screen-02");
+
+    expect(stale?.note).toBeUndefined();
+    expect(stale?.availability.state).toBe("confirmation_required");
+  });
+
+  it("names every blocker so management can see why a window is closed", () => {
+    const result = evaluateExclusiveAssetAvailability({
+      productId: "product-bus-rear",
+      startDate: "2027-02-12",
+      endDate: "2027-02-18",
+      assets,
+      bookings,
+      holds,
+      outages,
+      clock: FIXTURE_CLOCK_DATE,
+    });
+
+    const kinds = (result.summary.blockers ?? []).map((b) => b.kind);
+
+    expect(result.summary.blockers).toHaveLength(3);
+    expect(kinds).toContain("booking");
+    expect(kinds).toContain("outage");
+  });
+
   it("ignores retired assets such as Bus 202 full wrap", () => {
     const result = evaluateExclusiveAssetAvailability({
       productId: "product-bus-wrap",
