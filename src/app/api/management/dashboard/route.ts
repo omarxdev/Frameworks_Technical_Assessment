@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { resolveAuth } from "@/lib/auth/session";
+import { requireRole } from "@/lib/auth/session";
 import { collections } from "@/lib/db/collections";
+import { isVerificationStale } from "@/lib/domain/availability/exclusiveAsset";
 
 export async function GET(req: NextRequest) {
   try {
-    const auth = await resolveAuth(req);
-    // Allow manager access
-    if (auth.user && auth.user.role !== "manager" && auth.user.role !== "client") {
-      // In prototype switcher, allow easy inspection or check manager role
-    }
+    const guard = await requireRole(req, ["manager"]);
+    if (!guard.ok) return guard.response;
 
     const [requestsDocs, contractsDocs, campaignsDocs, workOrdersDocs, clientRequestsDocs, assetsDocs] =
       await Promise.all([
@@ -39,13 +37,17 @@ export async function GET(req: NextRequest) {
     // 2. Blocked work orders
     const blockedOrders = workOrdersDocs.filter((w) => w.status === "blocked");
     for (const w of blockedOrders) {
+      const blockedEntry = [...w.history]
+        .reverse()
+        .find((h) => h.action === "blocked");
+
       attentionItems.push({
         id: `att-wo-${w.id}`,
         type: "work_order_blocked",
         priority: "urgent",
-        title: "Fitter Work Order Blocked",
-        message: `Work Order ${w.id} (${w.locationLabel}) is blocked: ${w.completionNote || "Reason required"}`,
-        link: `/management/work-orders`,
+        title: "Fitter work order blocked",
+        message: `${w.locationLabel}: ${blockedEntry?.note || "no reason recorded"}`,
+        link: `/management/work-orders/${w.id}`,
         entityId: w.id,
       });
     }
@@ -65,14 +67,16 @@ export async function GET(req: NextRequest) {
     }
 
     // 4. Stale verification warnings
-    const staleAssets = assetsDocs.filter((a) => a.note && a.note.toLowerCase().includes("confirmation"));
+    const staleAssets = assetsDocs.filter(
+      (a) => a.status === "active" && isVerificationStale(a.verifiedAt)
+    );
     for (const sa of staleAssets) {
       attentionItems.push({
         id: `att-asset-${sa.id}`,
         type: "stale_verification",
         priority: "normal",
-        title: "Asset Verification Advisory",
-        message: `${sa.name}: ${sa.note}`,
+        title: "Asset verification is stale",
+        message: `${sa.name}: last verified ${sa.verifiedAt ?? "never"}.${sa.note ? ` ${sa.note}` : ""}`,
         entityId: sa.id,
       });
     }

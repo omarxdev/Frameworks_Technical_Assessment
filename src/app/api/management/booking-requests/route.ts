@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireRole } from "@/lib/auth/session";
 import { collections } from "@/lib/db/collections";
 import { BookingRequestStatusSchema } from "@/lib/schemas";
 
 export async function GET(req: NextRequest) {
   try {
+    const guard = await requireRole(req, ["manager"]);
+    if (!guard.ok) return guard.response;
+
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
 

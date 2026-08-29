@@ -1,16 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { resolveAuth } from "@/lib/auth/session";
+import { requireClientOrganisation } from "@/lib/auth/session";
 import { collections } from "@/lib/db/collections";
 
 export async function GET(req: NextRequest) {
   try {
-    const auth = await resolveAuth(req);
-    if (!auth.user || !auth.organisation) {
-      return NextResponse.json(
-        { code: "FORBIDDEN", message: "Client organization session is required." },
-        { status: 403 }
-      );
-    }
+    const guard = await requireClientOrganisation(req);
+    if (!guard.ok) return guard.response;
+
+    const auth = { user: guard.user, organisation: guard.organisation };
 
     const orgId = auth.organisation.id;
 

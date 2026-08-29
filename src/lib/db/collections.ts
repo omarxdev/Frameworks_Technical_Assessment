@@ -44,5 +44,15 @@ export const collections = {
   serviceEvents: () => getCollection<WithStringId<ServiceEvent>>("serviceEvents"),
   clientRequests: () => getCollection<WithStringId<any>>("clientRequests"),
   proofRecords: () => getCollection<WithStringId<ProofRecord>>("proofRecords"),
-  idempotencyKeys: () => getCollection<{ _id: string; key: string; response: any; createdAt: string }>("idempotencyKeys"),
+  idempotencyKeys: () =>
+    getCollection<{
+      _id: string;
+      key: string;
+      scope: string;
+      actorId: string;
+      requestHash: string;
+      response: any;
+      status: number;
+      createdAt: string;
+    }>("idempotencyKeys"),
 };

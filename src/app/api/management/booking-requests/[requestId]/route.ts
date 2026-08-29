@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { resolveAuth } from "@/lib/auth/session";
+import { requireRole } from "@/lib/auth/session";
 import { collections } from "@/lib/db/collections";
 import { ManagementDecisionSchema } from "@/lib/schemas";
 import { evaluateExclusiveAssetAvailability } from "@/lib/domain/availability/exclusiveAsset";
 import { evaluateCapacityPoolAvailability } from "@/lib/domain/availability/capacityPool";
+import { checkAvailability, loadInventory } from "@/lib/domain/availability/recheck";
 import { FIXTURE_CLOCK, FIXTURE_CLOCK_DATE } from "@/lib/constants";
 
 export async function GET(
@@ -11,6 +12,9 @@ export async function GET(
   { params }: { params: Promise<{ requestId: string }> }
 ) {
   try {
+    const guard = await requireRole(req, ["manager"]);
+    if (!guard.ok) return guard.response;
+
     const { requestId } = await params;
     const requestsCol = await collections.bookingRequests();
     const request = await requestsCol.findOne({ id: requestId });
@@ -121,8 +125,10 @@ export async function PATCH(
   { params }: { params: Promise<{ requestId: string }> }
 ) {
   try {
-    const auth = await resolveAuth(req);
-    const actorName = auth.user?.name || "Manager";
+    const guard = await requireRole(req, ["manager"]);
+    if (!guard.ok) return guard.response;
+
+    const actorName = guard.user.name;
 
     const { requestId } = await params;
     const requestsCol = await collections.bookingRequests();
@@ -149,69 +155,24 @@ export async function PATCH(
     let targetStatus: "submitted" | "information_required" | "approved" | "declined" = request.status;
 
     if (action === "approve") {
-      // Recheck availability
-      const [productsDocs, assetsDocs, capacityPoolsDocs, bookingsDocs, holdsDocs, outagesDocs] =
-        await Promise.all([
-          (await collections.products()).find({}).toArray(),
-          (await collections.assets()).find({}).toArray(),
-          (await collections.capacityPools()).find({}).toArray(),
-          (await collections.bookings()).find({}).toArray(),
-          (await collections.holds()).find({}).toArray(),
-          (await collections.outages()).find({}).toArray(),
-        ]);
+      const inventory = await loadInventory();
+      const check = checkAvailability({
+        inventory,
+        productId: request.productId,
+        startDate: request.startDate,
+        endDate: request.endDate,
+        selectedAssetId: selectedAssetId ?? request.requestedAssetId ?? null,
+      });
 
-      const product = productsDocs.find((p) => p.id === request.productId);
-      if (!product) {
-        return NextResponse.json(
-          { code: "NOT_FOUND", message: `Product '${request.productId}' not found` },
-          { status: 404 }
-        );
-      }
-
-      let isAvailable = false;
-      let availReason = "";
-
-      if (product.allocationModel === "exclusive_asset") {
-        const result = evaluateExclusiveAssetAvailability({
-          productId: product.id,
-          startDate: request.startDate,
-          endDate: request.endDate,
-          assets: assetsDocs,
-          bookings: bookingsDocs,
-          holds: holdsDocs,
-          outages: outagesDocs,
-          clock: FIXTURE_CLOCK_DATE,
-        });
-        isAvailable = result.summary.state !== "unavailable";
-        availReason = result.summary.reason;
-
-        // If specific asset requested or selected, check that specific asset
-        if (selectedAssetId) {
-          const specificAsset = result.assetOptions.find((a) => a.id === selectedAssetId);
-          if (!specificAsset || specificAsset.availability.state === "unavailable") {
-            isAvailable = false;
-            availReason = `Selected asset '${selectedAssetId}' is unavailable for the requested dates.`;
-          }
-        }
-      } else {
-        const result = evaluateCapacityPoolAvailability({
-          productId: product.id,
-          startDate: request.startDate,
-          endDate: request.endDate,
-          pools: capacityPoolsDocs,
-          bookings: bookingsDocs,
-          holds: holdsDocs,
-          clock: FIXTURE_CLOCK_DATE,
-        });
-        isAvailable = result.summary.state === "available";
-        availReason = result.summary.reason;
-      }
-
-      if (!isAvailable) {
+      if (!check.allocatable) {
         return NextResponse.json(
           {
             code: "INVENTORY_CONFLICT",
-            message: `Cannot approve request due to inventory conflict: ${availReason}`,
+            message: `Cannot approve this request: ${check.conflictReason}`,
+            details: {
+              availability: check.summary,
+              blockers: check.summary.blockers ?? [],
+            },
           },
           { status: 409 }
         );

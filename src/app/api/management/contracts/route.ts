@@ -1,51 +1,72 @@
 import { NextRequest, NextResponse } from "next/server";
-import { resolveAuth } from "@/lib/auth/session";
+import { requireRole } from "@/lib/auth/session";
 import { collections } from "@/lib/db/collections";
 import { ContractCreateSchema } from "@/lib/schemas";
-import { validateIdempotencyKey } from "@/lib/domain/idempotency";
+import {
+  missingKeyResponse,
+  readIdempotencyKey,
+  validateIdempotencyKey,
+  withIdempotency,
+} from "@/lib/domain/idempotency";
+import { isValidDateRange } from "@/lib/domain/availability/dateRange";
 import { FIXTURE_CLOCK } from "@/lib/constants";
+import { newContractId } from "@/lib/ids";
 
-export async function POST(req: NextRequest) {
+export const POST = async (req: NextRequest) => {
   try {
-    const auth = await resolveAuth(req);
-    const actorName = auth.user?.name || "Manager";
+    const guard = await requireRole(req, ["manager"]);
+    if (!guard.ok) return guard.response;
 
-    const idempotencyKey =
-      req.headers.get("idempotency-key") || req.headers.get("Idempotency-Key");
-    if (!validateIdempotencyKey(idempotencyKey)) {
-      return NextResponse.json(
-        {
-          code: "VALIDATION_ERROR",
-          message: "A valid Idempotency-Key header is required.",
-        },
-        { status: 422 }
-      );
-    }
-
-    const idempCol = await collections.idempotencyKeys();
-    const cached = await idempCol.findOne({ key: idempotencyKey! });
-    if (cached) {
-      return NextResponse.json(cached.response, { status: 200 });
-    }
+    const key = readIdempotencyKey(req);
+    if (!validateIdempotencyKey(key)) return missingKeyResponse();
 
     const body = await req.json();
-    const parseResult = ContractCreateSchema.safeParse(body);
-    if (!parseResult.success) {
+    const parsed = ContractCreateSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
         {
           code: "VALIDATION_ERROR",
           message: "Invalid contract creation parameters",
-          details: parseResult.error.flatten(),
+          details: parsed.error.flatten(),
         },
         { status: 422 }
       );
     }
 
-    const data = parseResult.data;
+    const data = parsed.data;
 
-    const contractId = `contract-${Date.now().toString().slice(-4)}`;
-    const newContract = {
-      _id: contractId,
+    if (!isValidDateRange(data.startDate, data.endDate)) {
+      return NextResponse.json(
+        {
+          code: "VALIDATION_ERROR",
+          message: "startDate must be strictly before endDate",
+        },
+        { status: 422 }
+      );
+    }
+
+    const orgsCol = await collections.organisations();
+    const org = await orgsCol.findOne({ id: data.organisationId });
+    if (!org) {
+      return NextResponse.json(
+        {
+          code: "NOT_FOUND",
+          message: `Organisation '${data.organisationId}' not found`,
+        },
+        { status: 404 }
+      );
+    }
+
+    const idempotency = await withIdempotency({
+      scope: "management-contract-create",
+      actorId: guard.user.id,
+      key: key!,
+      body: data,
+    });
+    if (idempotency.kind !== "proceed") return idempotency.response;
+
+    const contractId = newContractId();
+    const contract = {
       id: contractId,
       organisationId: data.organisationId,
       bookingRequestId: data.bookingRequestId,
@@ -62,7 +83,7 @@ export async function POST(req: NextRequest) {
       history: [
         {
           at: FIXTURE_CLOCK,
-          actor: actorName,
+          actor: guard.user.name,
           action: "draft_created",
           note: "Draft contract prepared by management.",
         },
@@ -70,9 +91,8 @@ export async function POST(req: NextRequest) {
     };
 
     const contractsCol = await collections.contracts();
-    await contractsCol.insertOne(newContract);
+    await contractsCol.insertOne({ _id: contractId, ...contract });
 
-    // Update booking request with draft contract id
     if (data.bookingRequestId) {
       const requestsCol = await collections.bookingRequests();
       await requestsCol.updateOne(
@@ -81,20 +101,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { _id, ...responsePayload } = newContract;
-
-    await idempCol.insertOne({
-      _id: `idemp-${idempotencyKey}`,
-      key: idempotencyKey!,
-      response: responsePayload,
-      createdAt: FIXTURE_CLOCK,
-    });
-
-    return NextResponse.json(responsePayload, { status: 201 });
+    await idempotency.commit(contract, 201);
+    return NextResponse.json(contract, { status: 201 });
   } catch (error: any) {
     return NextResponse.json(
-      { code: "CONTRACT_CREATE_FAILED", message: error.message || "Failed to create draft contract" },
+      {
+        code: "CONTRACT_CREATE_FAILED",
+        message: error.message || "Failed to create draft contract",
+      },
       { status: 500 }
     );
   }
-}
+};

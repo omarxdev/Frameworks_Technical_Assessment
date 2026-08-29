@@ -1,32 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
-import { resolveAuth } from "@/lib/auth/session";
+import { requireRole } from "@/lib/auth/session";
 import { collections } from "@/lib/db/collections";
 import { WorkOrderCreateSchema } from "@/lib/schemas";
-import { validateIdempotencyKey } from "@/lib/domain/idempotency";
+import {
+  missingKeyResponse,
+  readIdempotencyKey,
+  validateIdempotencyKey,
+  withIdempotency,
+} from "@/lib/domain/idempotency";
 import { FIXTURE_CLOCK } from "@/lib/constants";
+import { newServiceEventId, newWorkOrderId } from "@/lib/ids";
 
 export async function POST(req: NextRequest) {
   try {
-    const auth = await resolveAuth(req);
-    const actorName = auth.user?.name || "Manager";
+    const guard = await requireRole(req, ["manager"]);
+    if (!guard.ok) return guard.response;
 
-    const idempotencyKey =
-      req.headers.get("idempotency-key") || req.headers.get("Idempotency-Key");
-    if (!validateIdempotencyKey(idempotencyKey)) {
-      return NextResponse.json(
-        {
-          code: "VALIDATION_ERROR",
-          message: "A valid Idempotency-Key header is required.",
-        },
-        { status: 422 }
-      );
-    }
+    const actorName = guard.user.name;
 
-    const idempCol = await collections.idempotencyKeys();
-    const cached = await idempCol.findOne({ key: idempotencyKey! });
-    if (cached) {
-      return NextResponse.json(cached.response, { status: 200 });
-    }
+    const key = readIdempotencyKey(req);
+    if (!validateIdempotencyKey(key)) return missingKeyResponse();
 
     const body = await req.json();
     const parseResult = WorkOrderCreateSchema.safeParse(body);
@@ -53,9 +46,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const workOrderId = `work-order-${Date.now().toString().slice(-4)}`;
+    const idempotency = await withIdempotency({
+      scope: "management-work-order-create",
+      actorId: guard.user.id,
+      key: key!,
+      body: data,
+    });
+    if (idempotency.kind !== "proceed") return idempotency.response;
+
+    const workOrderId = newWorkOrderId();
     const newWorkOrder = {
-      _id: workOrderId,
       id: workOrderId,
       campaignId: data.campaignId,
       contractId: data.contractId,
@@ -82,11 +82,11 @@ export async function POST(req: NextRequest) {
     };
 
     const workOrdersCol = await collections.workOrders();
-    await workOrdersCol.insertOne(newWorkOrder);
+    await workOrdersCol.insertOne({ _id: workOrderId, ...newWorkOrder });
 
     // Emit client-visible service event for scheduled installation
     const serviceEventsCol = await collections.serviceEvents();
-    const eventId = `event-${Date.now().toString().slice(-6)}`;
+    const eventId = newServiceEventId();
     await serviceEventsCol.insertOne({
       _id: eventId,
       id: eventId,
@@ -101,16 +101,8 @@ export async function POST(req: NextRequest) {
       clientSummary: `Installation is planned for ${new Date(data.scheduledStart).toLocaleDateString("en-GB", { day: "numeric", month: "long" })}.`,
     });
 
-    const { _id, ...responsePayload } = newWorkOrder;
-
-    await idempCol.insertOne({
-      _id: `idemp-${idempotencyKey}`,
-      key: idempotencyKey!,
-      response: responsePayload,
-      createdAt: FIXTURE_CLOCK,
-    });
-
-    return NextResponse.json(responsePayload, { status: 201 });
+    await idempotency.commit(newWorkOrder, 201);
+    return NextResponse.json(newWorkOrder, { status: 201 });
   } catch (error: any) {
     return NextResponse.json(
       { code: "WORK_ORDER_CREATE_FAILED", message: error.message || "Failed to create work order" },

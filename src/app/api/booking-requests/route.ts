@@ -1,62 +1,52 @@
 import { NextRequest, NextResponse } from "next/server";
-import { resolveAuth } from "@/lib/auth/session";
+import { requireClientOrganisation } from "@/lib/auth/session";
 import { collections } from "@/lib/db/collections";
 import { BookingRequestCreateSchema } from "@/lib/schemas";
-import { validateIdempotencyKey } from "@/lib/domain/idempotency";
+import {
+  missingKeyResponse,
+  readIdempotencyKey,
+  validateIdempotencyKey,
+  withIdempotency,
+} from "@/lib/domain/idempotency";
 import { isValidDateRange } from "@/lib/domain/availability/dateRange";
 import { FIXTURE_CLOCK } from "@/lib/constants";
+import { newRequestId } from "@/lib/ids";
 
-export async function POST(req: NextRequest) {
+export const POST = async (req: NextRequest) => {
   try {
-    const auth = await resolveAuth(req);
-    if (!auth.user || !auth.user.organisationId) {
-      return NextResponse.json(
-        { code: "FORBIDDEN", message: "Client organization account is required to submit a booking request." },
-        { status: 403 }
-      );
-    }
+    const guard = await requireClientOrganisation(req);
+    if (!guard.ok) return guard.response;
 
-    const idempotencyKey =
-      req.headers.get("idempotency-key") || req.headers.get("Idempotency-Key");
-    if (!validateIdempotencyKey(idempotencyKey)) {
-      return NextResponse.json(
-        {
-          code: "VALIDATION_ERROR",
-          message: "A valid Idempotency-Key header (min 8 characters) is required.",
-        },
-        { status: 422 }
-      );
-    }
+    const { user, organisation } = guard;
 
-    // Check idempotency cache
-    const idempCol = await collections.idempotencyKeys();
-    const cached = await idempCol.findOne({ key: idempotencyKey! });
-    if (cached) {
-      return NextResponse.json(cached.response, { status: 200 });
-    }
+    const key = readIdempotencyKey(req);
+    if (!validateIdempotencyKey(key)) return missingKeyResponse();
 
     const body = await req.json();
-    const parseResult = BookingRequestCreateSchema.safeParse(body);
-    if (!parseResult.success) {
+    const parsed = BookingRequestCreateSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
         {
           code: "VALIDATION_ERROR",
           message: "Invalid booking request parameters",
-          details: parseResult.error.flatten(),
+          details: parsed.error.flatten(),
         },
         { status: 422 }
       );
     }
 
-    const data = parseResult.data;
+    const data = parsed.data;
+
     if (!isValidDateRange(data.startDate, data.endDate)) {
       return NextResponse.json(
-        { code: "VALIDATION_ERROR", message: "startDate must be strictly before endDate" },
+        {
+          code: "VALIDATION_ERROR",
+          message: "startDate must be strictly before endDate",
+        },
         { status: 422 }
       );
     }
 
-    // Check product exists
     const productsCol = await collections.products();
     const product = await productsCol.findOne({ id: data.productId });
     if (!product) {
@@ -66,11 +56,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const requestId = `request-${Date.now().toString().slice(-6)}`;
-    const newRequest = {
-      _id: requestId,
+    const idempotency = await withIdempotency({
+      scope: "booking-request-create",
+      actorId: user.id,
+      key: key!,
+      body: data,
+    });
+    if (idempotency.kind !== "proceed") return idempotency.response;
+
+    const requestId = newRequestId();
+    const bookingRequest = {
       id: requestId,
-      organisationId: auth.user.organisationId,
+      idempotencyKey: key ?? undefined,
+      organisationId: organisation.id,
       productId: data.productId,
       requestedAssetId: data.requestedAssetId || null,
       startDate: data.startDate,
@@ -84,36 +82,30 @@ export async function POST(req: NextRequest) {
       history: [
         {
           at: FIXTURE_CLOCK,
-          actor: auth.user.name,
+          actor: user.name,
           action: "submitted",
           note: null,
         },
       ],
       advertiser: {
-        name: auth.organisation?.name || auth.user.name,
-        contactName: auth.user.name,
-        email: auth.user.email,
+        name: organisation.name,
+        contactName: user.name,
+        email: user.email,
       },
     };
 
     const requestsCol = await collections.bookingRequests();
-    await requestsCol.insertOne(newRequest);
+    await requestsCol.insertOne({ _id: requestId, ...bookingRequest });
 
-    const { _id, ...responsePayload } = newRequest;
-
-    // Cache idempotency response
-    await idempCol.insertOne({
-      _id: `idemp-${idempotencyKey}`,
-      key: idempotencyKey!,
-      response: responsePayload,
-      createdAt: FIXTURE_CLOCK,
-    });
-
-    return NextResponse.json(responsePayload, { status: 201 });
+    await idempotency.commit(bookingRequest, 201);
+    return NextResponse.json(bookingRequest, { status: 201 });
   } catch (error: any) {
     return NextResponse.json(
-      { code: "REQUEST_SUBMISSION_FAILED", message: error.message || "Failed to submit booking request" },
+      {
+        code: "REQUEST_SUBMISSION_FAILED",
+        message: error.message || "Failed to submit booking request",
+      },
       { status: 500 }
     );
   }
-}
+};

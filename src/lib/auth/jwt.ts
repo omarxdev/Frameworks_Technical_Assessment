@@ -1,9 +1,22 @@
 import { SignJWT, jwtVerify } from "jose";
 import type { UserRole } from "@/lib/schemas";
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "island_media_co_super_secret_prototype_jwt_key_2027"
-);
+const DEV_FALLBACK_SECRET = "island-media-prototype-development-secret-do-not-ship";
+
+const resolveSecret = () => {
+  const configured = process.env.JWT_SECRET;
+  if (configured && configured.length >= 32) return configured;
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "JWT_SECRET must be set to at least 32 characters in production."
+    );
+  }
+
+  return DEV_FALLBACK_SECRET;
+};
+
+const secretKey = () => new TextEncoder().encode(resolveSecret());
 
 export interface TokenPayload {
   userId: string;
@@ -11,23 +24,24 @@ export interface TokenPayload {
   organisationId: string | null;
 }
 
-export async function signSessionToken(payload: TokenPayload): Promise<string> {
-  return await new SignJWT({ ...payload })
+export const signSessionToken = async (payload: TokenPayload) =>
+  new SignJWT({ ...payload })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("7d")
-    .sign(JWT_SECRET);
-}
+    .sign(secretKey());
 
-export async function verifySessionToken(token: string): Promise<TokenPayload | null> {
+export const verifySessionToken = async (
+  token: string
+): Promise<TokenPayload | null> => {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const { payload } = await jwtVerify(token, secretKey());
     return {
       userId: payload.userId as string,
       role: payload.role as UserRole,
       organisationId: (payload.organisationId as string) || null,
     };
-  } catch (error) {
+  } catch {
     return null;
   }
-}
+};

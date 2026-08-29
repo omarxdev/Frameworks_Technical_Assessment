@@ -69,6 +69,15 @@ export const AvailabilityStateSchema = z.enum([
 ]);
 export type AvailabilityState = z.infer<typeof AvailabilityStateSchema>;
 
+export const AvailabilityBlockerSchema = z.object({
+  kind: z.enum(["booking", "hold", "outage"]),
+  id: z.string(),
+  label: z.string(),
+  startDate: z.string(),
+  endDate: z.string(),
+});
+export type AvailabilityBlocker = z.infer<typeof AvailabilityBlockerSchema>;
+
 export const AvailabilitySummarySchema = z.object({
   state: AvailabilityStateSchema,
   reason: z.string(),
@@ -77,6 +86,8 @@ export const AvailabilitySummarySchema = z.object({
   availableCapacity: z.number().int().nullable().optional(),
   totalCapacity: z.number().int().nullable().optional(),
   freshestVerificationAt: z.string().nullable().optional(),
+  verificationStale: z.boolean().optional(),
+  blockers: z.array(AvailabilityBlockerSchema).optional(),
 });
 export type AvailabilitySummary = z.infer<typeof AvailabilitySummarySchema>;
 

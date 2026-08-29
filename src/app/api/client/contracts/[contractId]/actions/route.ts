@@ -1,23 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
-import { resolveAuth } from "@/lib/auth/session";
+import { requireClientOrganisation } from "@/lib/auth/session";
 import { collections } from "@/lib/db/collections";
 import { ClientContractActionSchema } from "@/lib/schemas";
+import { canTransitionContract } from "@/lib/domain/contracts/stateMachine";
+import { checkAvailability, loadInventory } from "@/lib/domain/availability/recheck";
 import { FIXTURE_CLOCK } from "@/lib/constants";
+import { newBookingId, newCampaignId, newClientRequestId, newServiceEventId } from "@/lib/ids";
 
-export async function POST(
+const conflict = (message: string) =>
+  NextResponse.json({ code: "CONFLICT", message }, { status: 409 });
+
+export const POST = async (
   req: NextRequest,
   { params }: { params: Promise<{ contractId: string }> }
-) {
+) => {
   try {
-    const auth = await resolveAuth(req);
-    if (!auth.user || !auth.organisation) {
-      return NextResponse.json(
-        { code: "FORBIDDEN", message: "Client organization session is required." },
-        { status: 403 }
-      );
-    }
+    const guard = await requireClientOrganisation(req);
+    if (!guard.ok) return guard.response;
 
+    const { user, organisation } = guard;
     const { contractId } = await params;
+
     const contractsCol = await collections.contracts();
     const contract = await contractsCol.findOne({ id: contractId });
 
@@ -28,209 +31,280 @@ export async function POST(
       );
     }
 
-    if (contract.organisationId !== auth.organisation.id) {
+    if (contract.organisationId !== organisation.id) {
       return NextResponse.json(
-        { code: "FORBIDDEN", message: "You cannot access this organisation's record." },
+        {
+          code: "FORBIDDEN",
+          message: "You cannot access this organisation's record.",
+        },
         { status: 403 }
       );
     }
 
     const body = await req.json();
-    const parseResult = ClientContractActionSchema.safeParse(body);
-    if (!parseResult.success) {
+    const parsed = ClientContractActionSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { code: "VALIDATION_ERROR", message: "Invalid action payload", details: parseResult.error.flatten() },
+        {
+          code: "VALIDATION_ERROR",
+          message: "Invalid action payload",
+          details: parsed.error.flatten(),
+        },
         { status: 422 }
       );
     }
 
-    const { action, note } = parseResult.data;
+    const { action, note } = parsed.data;
+
+    const campaignsCol = await collections.campaigns();
+    const serviceEventsCol = await collections.serviceEvents();
+    const clientRequestsCol = await collections.clientRequests();
 
     if (action === "accept") {
-      if (contract.status !== "issued") {
-        return NextResponse.json(
-          { code: "CONFLICT", message: `Contract cannot be accepted in '${contract.status}' status.` },
-          { status: 409 }
+      if (!canTransitionContract(contract.status, "accepted")) {
+        return conflict(
+          `A contract in '${contract.status}' status cannot be accepted.`
         );
       }
 
-      // Transition to accepted / active
-      const updatedContract = {
-        ...contract,
-        status: "accepted" as const,
-        acceptedAt: FIXTURE_CLOCK,
-        history: [
-          ...contract.history,
-          {
-            at: FIXTURE_CLOCK,
-            actor: auth.user.name,
-            action: "accepted",
-            note: note || "Accepted via client portal prototype.",
-          },
-        ],
-      };
+      const inventory = await loadInventory();
 
-      await contractsCol.updateOne({ id: contractId }, { $set: updatedContract });
-
-      // Activate or create connected campaign
-      const campaignsCol = await collections.campaigns();
-      let campaignDoc = await campaignsCol.findOne({ contractId });
-
-      if (campaignDoc) {
-        await campaignsCol.updateOne(
-          { contractId },
-          {
-            $set: {
-              status: "active",
-              currentStage: "contract_accepted",
-            },
-          }
-        );
-      } else {
-        const campaignId = `campaign-${Date.now().toString().slice(-4)}`;
-        await campaignsCol.insertOne({
-          _id: campaignId,
-          id: campaignId,
-          organisationId: auth.organisation.id,
-          contractId,
-          bookingId: null,
-          name: `${auth.organisation.name} Campaign`,
-          status: "active",
-          currentStage: "contract_accepted",
-          clientVisible: true,
-        });
-      }
-
-      // Create confirmed bookings for contract items if exclusive_asset
-      const bookingsCol = await collections.bookings();
       for (const item of contract.items) {
-        if (item.assetId) {
-          const bookingId = `booking-${Date.now().toString().slice(-4)}-${item.id}`;
-          await bookingsCol.insertOne({
-            _id: bookingId,
-            id: bookingId,
-            campaignName: `${auth.organisation.name} Campaign`,
-            productId: item.productId,
-            assetId: item.assetId,
-            startDate: contract.startDate,
-            endDate: contract.endDate,
-            status: "confirmed",
-          });
-        } else if (item.capacityPoolId) {
-          const bookingId = `booking-${Date.now().toString().slice(-4)}-${item.id}`;
-          await bookingsCol.insertOne({
-            _id: bookingId,
-            id: bookingId,
-            campaignName: `${auth.organisation.name} Campaign`,
-            productId: item.productId,
-            capacityPoolId: item.capacityPoolId,
-            capacityUnits: item.quantity,
-            startDate: contract.startDate,
-            endDate: contract.endDate,
-            status: "confirmed",
-          });
+        const check = checkAvailability({
+          inventory,
+          productId: item.productId,
+          startDate: contract.startDate,
+          endDate: contract.endDate,
+          selectedAssetId: item.assetId ?? null,
+          requiredUnits: item.quantity ?? 1,
+        });
+
+        if (!check.allocatable) {
+          return NextResponse.json(
+            {
+              code: "INVENTORY_CONFLICT",
+              message: `This contract can no longer be activated: ${check.conflictReason}`,
+              details: { contractItemId: item.id, productId: item.productId },
+            },
+            { status: 409 }
+          );
         }
       }
 
-      // Emit client-visible service event
-      const serviceEventsCol = await collections.serviceEvents();
-      const eventId = `event-${Date.now().toString().slice(-6)}`;
-      await serviceEventsCol.insertOne({
-        _id: eventId,
-        id: eventId,
-        organisationId: auth.organisation.id,
-        contractId,
-        campaignId: campaignDoc?.id || null,
-        workOrderId: null,
-        at: FIXTURE_CLOCK,
-        type: "contract_accepted",
-        title: "Contract accepted",
-        clientVisible: true,
-        clientSummary: "Your advertising contract has been accepted and activated.",
-      });
+      const bookingsCol = await collections.bookings();
+      const bookingIds: string[] = [];
 
-      // Increment org contractCount
-      const orgsCol = await collections.organisations();
-      await orgsCol.updateOne({ id: auth.organisation.id }, { $inc: { contractCount: 1 } });
-    } else if (action === "request_changes") {
-      if (contract.status !== "issued") {
-        return NextResponse.json(
-          { code: "CONFLICT", message: `Cannot request changes on contract in '${contract.status}' status.` },
-          { status: 409 }
-        );
+      for (const item of contract.items) {
+        const bookingId = newBookingId();
+        bookingIds.push(bookingId);
+
+        await bookingsCol.insertOne({
+          _id: bookingId,
+          id: bookingId,
+          campaignName: `${organisation.name} campaign`,
+          productId: item.productId,
+          ...(item.assetId ? { assetId: item.assetId } : {}),
+          ...(item.capacityPoolId
+            ? {
+                capacityPoolId: item.capacityPoolId,
+                capacityUnits: item.quantity ?? 1,
+              }
+            : {}),
+          startDate: contract.startDate,
+          endDate: contract.endDate,
+          status: "confirmed",
+        });
       }
 
       await contractsCol.updateOne(
         { id: contractId },
         {
           $set: {
-            status: "change_requested",
-            history: [
-              ...contract.history,
-              {
-                at: FIXTURE_CLOCK,
-                actor: auth.user.name,
-                action: "change_requested",
-                note: note || "Client requested changes.",
-              },
-            ],
+            status: "active",
+            acceptedAt: FIXTURE_CLOCK,
+            activatedAt: FIXTURE_CLOCK,
+          },
+          $push: {
+            history: {
+              $each: [
+                {
+                  at: FIXTURE_CLOCK,
+                  actor: user.name,
+                  action: "accepted",
+                  note: note || "Accepted via client portal prototype.",
+                },
+                {
+                  at: FIXTURE_CLOCK,
+                  actor: "system",
+                  action: "activated",
+                  note: "Inventory rechecked and bookings confirmed on acceptance.",
+                },
+              ],
+            },
           },
         }
       );
 
-      const clientRequestsCol = await collections.clientRequests();
-      const reqId = `client-req-${Date.now().toString().slice(-4)}`;
+      const existingCampaign = await campaignsCol.findOne({ contractId });
+      let campaignId = existingCampaign?.id ?? null;
+
+      if (existingCampaign) {
+        await campaignsCol.updateOne(
+          { contractId },
+          {
+            $set: {
+              status: "active",
+              currentStage: "awaiting_installation",
+              bookingId: bookingIds[0] ?? null,
+            },
+          }
+        );
+      } else {
+        campaignId = newCampaignId();
+        await campaignsCol.insertOne({
+          _id: campaignId,
+          id: campaignId,
+          organisationId: organisation.id,
+          contractId,
+          bookingId: bookingIds[0] ?? null,
+          name: `${organisation.name} campaign`,
+          status: "active",
+          currentStage: "awaiting_installation",
+          clientVisible: true,
+        });
+      }
+
+      const eventId = newServiceEventId();
+      await serviceEventsCol.insertOne({
+        _id: eventId,
+        id: eventId,
+        organisationId: organisation.id,
+        contractId,
+        campaignId,
+        workOrderId: null,
+        at: FIXTURE_CLOCK,
+        type: "contract_accepted",
+        title: "Contract accepted",
+        clientVisible: true,
+        clientSummary:
+          "Your contract is accepted and the campaign is now active. Installation will be scheduled shortly.",
+      });
+
+      const orgsCol = await collections.organisations();
+      await orgsCol.updateOne(
+        { id: organisation.id },
+        { $inc: { contractCount: 1 } }
+      );
+    } else if (action === "request_changes") {
+      if (!canTransitionContract(contract.status, "change_requested")) {
+        return conflict(
+          `Changes cannot be requested on a contract in '${contract.status}' status.`
+        );
+      }
+
+      if (!note?.trim()) {
+        return NextResponse.json(
+          {
+            code: "VALIDATION_ERROR",
+            message: "Describe the change you need so management can review it.",
+          },
+          { status: 422 }
+        );
+      }
+
+      await contractsCol.updateOne(
+        { id: contractId },
+        {
+          $set: { status: "change_requested" },
+          $push: {
+            history: {
+              at: FIXTURE_CLOCK,
+              actor: user.name,
+              action: "change_requested",
+              note,
+            },
+          },
+        }
+      );
+
+      const requestId = newClientRequestId();
       await clientRequestsCol.insertOne({
-        _id: reqId,
-        id: reqId,
-        organisationId: auth.organisation.id,
+        _id: requestId,
+        id: requestId,
+        organisationId: organisation.id,
         contractId,
         type: "contract_change",
         status: "submitted",
         createdAt: FIXTURE_CLOCK,
-        summary: note || "Client requested changes to contract terms.",
-        history: [{ at: FIXTURE_CLOCK, actor: auth.user.name, action: "submitted", note }],
+        summary: note,
+        history: [
+          { at: FIXTURE_CLOCK, actor: user.name, action: "submitted", note },
+        ],
       });
     } else if (action === "request_cancellation") {
-      const clientRequestsCol = await collections.clientRequests();
-      const reqId = `client-req-${Date.now().toString().slice(-4)}`;
+      if (!note?.trim()) {
+        return NextResponse.json(
+          {
+            code: "VALIDATION_ERROR",
+            message: "Give a reason so management can review the cancellation.",
+          },
+          { status: 422 }
+        );
+      }
+
+      const requestId = newClientRequestId();
       await clientRequestsCol.insertOne({
-        _id: reqId,
-        id: reqId,
-        organisationId: auth.organisation.id,
+        _id: requestId,
+        id: requestId,
+        organisationId: organisation.id,
         contractId,
         type: "cancellation",
         status: "submitted",
         createdAt: FIXTURE_CLOCK,
-        summary: note || "Client requested contract cancellation.",
-        history: [{ at: FIXTURE_CLOCK, actor: auth.user.name, action: "submitted", note }],
+        summary: note,
+        history: [
+          { at: FIXTURE_CLOCK, actor: user.name, action: "submitted", note },
+        ],
       });
+
+      await contractsCol.updateOne(
+        { id: contractId },
+        {
+          $push: {
+            history: {
+              at: FIXTURE_CLOCK,
+              actor: user.name,
+              action: "cancellation_requested",
+              note,
+            },
+          },
+        }
+      );
     }
 
-    // Return updated contract detail
-    const updatedDoc = await contractsCol.findOne({ id: contractId });
-    const { _id, ...updatedContractData } = updatedDoc!;
+    const updated = await contractsCol.findOne({ id: contractId });
+    const { _id, ...contractData } = updated!;
 
-    const campaignsCol = await collections.campaigns();
-    const campaignDoc = await campaignsCol.findOne({ contractId });
-
-    const serviceEventsCol = await collections.serviceEvents();
-    const serviceEvents = await serviceEventsCol.find({ contractId, clientVisible: true }).toArray();
-
-    const clientRequestsCol = await collections.clientRequests();
+    const campaign = await campaignsCol.findOne({ contractId });
+    const serviceEvents = await serviceEventsCol
+      .find({ contractId, clientVisible: true })
+      .sort({ at: 1 })
+      .toArray();
     const clientRequests = await clientRequestsCol.find({ contractId }).toArray();
 
     return NextResponse.json({
-      ...updatedContractData,
-      campaign: campaignDoc ? (({ _id, ...c }) => c)(campaignDoc) : null,
-      serviceEvents: serviceEvents.map(({ _id, ...se }) => se),
-      proofRecords: [],
-      clientRequests: clientRequests.map(({ _id, ...cr }) => cr),
+      ...contractData,
+      campaign: campaign ? (({ _id: cid, ...c }) => c)(campaign) : null,
+      serviceEvents: serviceEvents.map(({ _id: sid, ...se }) => se),
+      clientRequests: clientRequests.map(({ _id: rid, ...cr }) => cr),
     });
   } catch (error: any) {
     return NextResponse.json(
-      { code: "ACTION_FAILED", message: error.message || "Failed to execute contract action" },
+      {
+        code: "ACTION_FAILED",
+        message: error.message || "Failed to execute contract action",
+      },
       { status: 500 }
     );
   }
-}
+};

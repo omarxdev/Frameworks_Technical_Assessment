@@ -2,112 +2,147 @@ import { NextRequest, NextResponse } from "next/server";
 import { RegisterInputSchema } from "@/lib/schemas";
 import { collections } from "@/lib/db/collections";
 import { signSessionToken } from "@/lib/auth/jwt";
+import { SESSION_COOKIE } from "@/lib/auth/session";
+import { readIdempotencyKey, withIdempotency } from "@/lib/domain/idempotency";
 import { FIXTURE_CLOCK } from "@/lib/constants";
+import { newOrganisationId, newUserId } from "@/lib/ids";
 
-export async function POST(req: NextRequest) {
+const SESSION_MAX_AGE = 60 * 60 * 24 * 7;
+
+const attachSession = async (
+  response: NextResponse,
+  payload: { userId: string; organisationId: string }
+) => {
+  const token = await signSessionToken({
+    userId: payload.userId,
+    role: "client",
+    organisationId: payload.organisationId,
+  });
+
+  response.cookies.set(SESSION_COOKIE, token, {
+    httpOnly: true,
+    path: "/",
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: SESSION_MAX_AGE,
+  });
+
+  return response;
+};
+
+export const POST = async (req: NextRequest) => {
   try {
-    const idempotencyKey = req.headers.get("idempotency-key") || req.headers.get("Idempotency-Key");
-    
-    // Check idempotency cache if key provided
-    if (idempotencyKey) {
-      const idempCol = await collections.idempotencyKeys();
-      const existing = await idempCol.findOne({ key: idempotencyKey });
-      if (existing) {
-        const response = NextResponse.json(existing.response, { status: 200 });
-        const token = await signSessionToken({
-          userId: existing.response.user.id,
-          role: "client",
-          organisationId: existing.response.organisation.id,
-        });
-        response.cookies.set("island_session", token, {
-          httpOnly: true,
-          path: "/",
-          sameSite: "lax",
-          maxAge: 60 * 60 * 24 * 7,
-        });
-        return response;
-      }
-    }
-
     const body = await req.json();
-    const parseResult = RegisterInputSchema.safeParse(body);
-    if (!parseResult.success) {
+    const parsed = RegisterInputSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
         {
           code: "VALIDATION_ERROR",
           message: "Registration validation failed",
-          details: parseResult.error.flatten(),
+          details: parsed.error.flatten(),
         },
         { status: 422 }
       );
     }
 
-    const { organisationName, contactName, email } = parseResult.data;
+    const { organisationName, contactName, email } = parsed.data;
 
-    const orgId = `org-${organisationName.toLowerCase().replace(/[^a-z0-9]/g, "-")}-${Date.now().toString().slice(-4)}`;
-    const userId = `user-${contactName.toLowerCase().replace(/[^a-z0-9]/g, "-")}-${Date.now().toString().slice(-4)}`;
-
-    const newOrg = {
-      _id: orgId,
-      id: orgId,
-      name: organisationName,
-      createdAt: FIXTURE_CLOCK,
-      contractCount: 0,
-    };
-
-    const newUser = {
-      _id: userId,
-      id: userId,
-      name: contactName,
-      email,
-      role: "client" as const,
-      organisationId: orgId,
-      status: "active",
-    };
-
-    const orgsCol = await collections.organisations();
     const usersCol = await collections.users();
+    const existing = await usersCol.findOne({ email: email.toLowerCase() });
+    if (existing) {
+      return NextResponse.json(
+        {
+          code: "EMAIL_IN_USE",
+          message:
+            "An account already exists for this email. Use the role switcher to sign back in.",
+        },
+        { status: 409 }
+      );
+    }
 
-    await orgsCol.insertOne(newOrg);
-    await usersCol.insertOne(newUser);
+    const key = readIdempotencyKey(req);
 
-    const { _id: _oId, ...orgData } = newOrg;
-    const { _id: _uId, ...userData } = newUser;
+    if (key) {
+      const idempotency = await withIdempotency({
+        scope: "auth-register",
+        actorId: "anonymous",
+        key,
+        body: parsed.data,
+      });
 
-    const sessionPayload = {
-      user: userData,
-      organisation: orgData,
-    };
+      if (idempotency.kind === "conflict") return idempotency.response;
 
-    if (idempotencyKey) {
-      const idempCol = await collections.idempotencyKeys();
-      await idempCol.insertOne({
-        _id: `idemp-${idempotencyKey}`,
-        key: idempotencyKey,
-        response: sessionPayload,
-        createdAt: FIXTURE_CLOCK,
+      if (idempotency.kind === "replay") {
+        const replayed = await idempotency.response.clone().json();
+        return attachSession(idempotency.response, {
+          userId: replayed.user.id,
+          organisationId: replayed.organisation.id,
+        });
+      }
+
+      const created = await createClientAccount({
+        organisationName,
+        contactName,
+        email,
+      });
+      await idempotency.commit(created, 201);
+
+      return attachSession(NextResponse.json(created, { status: 201 }), {
+        userId: created.user.id,
+        organisationId: created.organisation.id,
       });
     }
 
-    const token = await signSessionToken({
-      userId,
-      role: "client",
-      organisationId: orgId,
+    const created = await createClientAccount({
+      organisationName,
+      contactName,
+      email,
     });
 
-    const response = NextResponse.json(sessionPayload, { status: 201 });
-    response.cookies.set("island_session", token, {
-      httpOnly: true,
-      path: "/",
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7,
+    return attachSession(NextResponse.json(created, { status: 201 }), {
+      userId: created.user.id,
+      organisationId: created.organisation.id,
     });
-
-    return response;
   } catch (error: any) {
     return NextResponse.json(
-      { code: "REGISTRATION_FAILED", message: error.message || "Failed to register" },
+      {
+        code: "REGISTRATION_FAILED",
+        message: error.message || "Failed to register",
+      },
       { status: 500 }
     );
   }
-}
+};
+
+const createClientAccount = async (input: {
+  organisationName: string;
+  contactName: string;
+  email: string;
+}) => {
+  const orgId = newOrganisationId();
+  const userId = newUserId();
+
+  const organisation = {
+    id: orgId,
+    name: input.organisationName,
+    createdAt: FIXTURE_CLOCK,
+    contractCount: 0,
+  };
+
+  const user = {
+    id: userId,
+    name: input.contactName,
+    email: input.email.toLowerCase(),
+    role: "client" as const,
+    organisationId: orgId,
+    status: "active",
+  };
+
+  const orgsCol = await collections.organisations();
+  const usersCol = await collections.users();
+
+  await orgsCol.insertOne({ _id: orgId, ...organisation });
+  await usersCol.insertOne({ _id: userId, ...user });
+
+  return { user, organisation };
+};
