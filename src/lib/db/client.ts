@@ -5,59 +5,43 @@ declare global {
   var _mongoMemoryServer: any;
 }
 
-let client: MongoClient;
-let clientPromise: Promise<MongoClient>;
+export const DB_NAME = process.env.MONGODB_DB || "island-media";
 
-const uri = process.env.MONGODB_URI || "mongodb://localhost:27017/island-media";
+const uri = () =>
+  process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/island-media";
 
-export async function getMongoClient(): Promise<MongoClient> {
-  if (process.env.NODE_ENV === "test") {
-    // In test environment, spin up or reuse memory server if needed
-    if (!global._mongoClientPromise) {
-      try {
-        const { MongoMemoryServer } = await import("mongodb-memory-server");
-        const mongod = await MongoMemoryServer.create();
-        global._mongoMemoryServer = mongod;
-        const memUri = mongod.getUri();
-        const memClient = new MongoClient(memUri);
-        global._mongoClientPromise = memClient.connect();
-      } catch (err) {
-        // Fallback to standard client
-        const fallbackClient = new MongoClient(uri);
-        global._mongoClientPromise = fallbackClient.connect();
-      }
-    }
+const startMemoryServer = async () => {
+  const { MongoMemoryServer } = await import("mongodb-memory-server");
+  const mongod = await MongoMemoryServer.create();
+  global._mongoMemoryServer = mongod;
+  return new MongoClient(mongod.getUri()).connect();
+};
+
+export const getMongoClient = async (): Promise<MongoClient> => {
+  if (global._mongoClientPromise) return global._mongoClientPromise;
+
+  if (process.env.NODE_ENV === "test" || process.env.USE_MEMORY_DB === "true") {
+    global._mongoClientPromise = startMemoryServer();
     return global._mongoClientPromise;
   }
 
-  if (process.env.NODE_ENV === "development") {
-    if (!global._mongoClientPromise) {
-      client = new MongoClient(uri, {
-        connectTimeoutMS: 5000,
-        serverSelectionTimeoutMS: 5000,
-      });
-      global._mongoClientPromise = client.connect().catch(async (err) => {
-        console.warn("Could not connect to local MongoDB, attempting memory fallback...");
-        try {
-          const { MongoMemoryServer } = await import("mongodb-memory-server");
-          const mongod = await MongoMemoryServer.create();
-          global._mongoMemoryServer = mongod;
-          const memUri = mongod.getUri();
-          const memClient = new MongoClient(memUri);
-          return memClient.connect();
-        } catch (innerErr) {
-          throw err;
-        }
-      });
-    }
-    return global._mongoClientPromise;
-  }
+  const client = new MongoClient(uri(), {
+    connectTimeoutMS: 8000,
+    serverSelectionTimeoutMS: 8000,
+  });
 
-  client = new MongoClient(uri);
-  return client.connect();
-}
+  global._mongoClientPromise = client.connect().catch(async (err) => {
+    if (process.env.NODE_ENV === "production") throw err;
+    console.warn(
+      `Could not reach MongoDB at the configured URI (${err.message}). Falling back to an in-memory server for this process.`
+    );
+    return startMemoryServer();
+  });
 
-export async function getDb(): Promise<Db> {
-  const mongoClient = await getMongoClient();
-  return mongoClient.db();
-}
+  return global._mongoClientPromise;
+};
+
+export const getDb = async (): Promise<Db> => {
+  const client = await getMongoClient();
+  return client.db(DB_NAME);
+};
