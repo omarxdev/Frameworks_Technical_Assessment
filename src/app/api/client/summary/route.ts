@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireClientOrganisation } from "@/lib/auth/session";
 import { collections } from "@/lib/db/collections";
 
-export async function GET(req: NextRequest) {
+export const GET = async (req: NextRequest) => {
   try {
     const guard = await requireClientOrganisation(req);
     if (!guard.ok) return guard.response;
@@ -11,11 +11,9 @@ export async function GET(req: NextRequest) {
 
     const orgId = auth.organisation.id;
 
-    // Fetch contracts for this organisation only
     const contractsCol = await collections.contracts();
     const orgContracts = await contractsCol.find({ organisationId: orgId }).toArray();
 
-    // Fetch service events for this organisation
     const serviceEventsCol = await collections.serviceEvents();
     const serviceEvents = await serviceEventsCol
       .find({ organisationId: orgId, clientVisible: true })
@@ -23,11 +21,11 @@ export async function GET(req: NextRequest) {
       .limit(10)
       .toArray();
 
-    // Fetch client requests
     const clientRequestsCol = await collections.clientRequests();
-    const clientRequests = await clientRequestsCol.find({ organisationId: orgId }).toArray();
+    const clientRequests = await clientRequestsCol
+      .find({ organisationId: orgId })
+      .toArray();
 
-    // Compute contract summaries
     const contractSummaries = orgContracts.map((c) => {
       let actionRequired: string | null = null;
       if (c.status === "issued") {
@@ -46,7 +44,6 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    // Compute attention items for client
     const attentionItems: any[] = [];
     for (const c of orgContracts) {
       if (c.status === "issued") {
@@ -84,8 +81,11 @@ export async function GET(req: NextRequest) {
     });
   } catch (error: any) {
     return NextResponse.json(
-      { code: "CLIENT_SUMMARY_FAILED", message: error.message || "Failed to get client summary" },
+      {
+        code: "CLIENT_SUMMARY_FAILED",
+        message: error.message || "Failed to get client summary",
+      },
       { status: 500 }
     );
   }
-}
+};

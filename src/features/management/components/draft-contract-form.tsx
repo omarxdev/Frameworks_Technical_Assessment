@@ -6,13 +6,15 @@ import { Loader2, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Callout } from "@/components/ui/states";
 import {
   asApiError,
   useCreateContract,
 } from "@/features/management/hooks/use-management-actions";
-import { formatMoney } from "@/features/management/lib/format";
+import { formatMoney } from "@/lib/format";
 import type { AssetOption } from "@/lib/schemas";
+import { SectionTitle, SubsectionLabel } from "@/components/ui/typography";
 
 interface LineItemDraft {
   key: string;
@@ -126,13 +128,13 @@ export const DraftContractForm = ({
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex flex-col gap-5 rounded-xl border border-border bg-card p-5"
+      className="bg-card ring-foreground/10 flex flex-col gap-5 rounded-xl p-4 ring-1"
     >
       <div>
-        <h2 className="font-heading text-lg font-semibold tracking-tight">
+        <SectionTitle>
           Create draft contract
-        </h2>
-        <p className="text-sm text-muted-foreground">
+        </SectionTitle>
+        <p className="text-muted-foreground text-sm">
           The draft stays internal until you issue it to the client.
         </p>
       </div>
@@ -140,31 +142,24 @@ export const DraftContractForm = ({
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="contract-start">Start date</Label>
-          <Input
-            id="contract-start"
-            type="date"
-            required
-            value={start}
-            onChange={(event) => setStart(event.target.value)}
-          />
+          <DatePicker id="contract-start" value={start} onChange={setStart} />
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="contract-end">End date (exclusive)</Label>
-          <Input
+          <DatePicker
             id="contract-end"
-            type="date"
-            required
+            min={start || undefined}
             value={end}
-            onChange={(event) => setEnd(event.target.value)}
+            onChange={setEnd}
           />
         </div>
       </div>
 
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold">Line items</h3>
+          <SubsectionLabel>Line items</SubsectionLabel>
           <Button type="button" size="sm" variant="outline" onClick={handleAddItem}>
-            <Plus className="size-3.5" />
+            <Plus className="size-4" />
             Add line
           </Button>
         </div>
@@ -172,7 +167,7 @@ export const DraftContractForm = ({
         {items.map((item) => (
           <div
             key={item.key}
-            className="grid gap-3 rounded-lg border border-border bg-background p-4 md:grid-cols-2 xl:grid-cols-3"
+            className="border-border bg-background grid gap-3 rounded-lg border p-4 sm:grid-cols-2 xl:grid-cols-3"
           >
             <div className="flex flex-col gap-1.5">
               <Label htmlFor={`product-${item.key}`}>Product ID</Label>
@@ -292,8 +287,8 @@ export const DraftContractForm = ({
         ))}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-background px-4 py-3">
-        <span className="text-sm text-muted-foreground">Contract total</span>
+      <div className="border-border bg-background flex flex-wrap items-center justify-between gap-3 rounded-lg border px-4 py-3">
+        <span className="text-muted-foreground text-sm">Contract total</span>
         <span className="font-heading text-xl font-semibold tabular-nums">
           {formatMoney(total)}
         </span>

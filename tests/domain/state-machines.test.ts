@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { canTransitionContract } from "@/lib/domain/contracts/stateMachine";
+import { canTransitionContract } from "@/lib/domain/contracts/state-machine";
 import {
   canTransitionWorkOrder,
   validateWorkOrderStatusUpdate,
-} from "@/lib/domain/workOrders/stateMachine";
+} from "@/lib/domain/work-orders/state-machine";
 
 describe("Contract State Machine", () => {
   it("allows valid transitions: draft -> issued -> accepted -> active -> completed", () => {
@@ -29,12 +29,10 @@ describe("Work Order State Machine", () => {
   });
 
   it("requires a reason when transitioning to blocked state", () => {
-    // Missing reason note
     const invalidUpdate = validateWorkOrderStatusUpdate("on_site", "blocked", "");
     expect(invalidUpdate.valid).toBe(false);
     expect(invalidUpdate.error).toContain("reason");
 
-    // With reason note
     const validUpdate = validateWorkOrderStatusUpdate(
       "on_site",
       "blocked",

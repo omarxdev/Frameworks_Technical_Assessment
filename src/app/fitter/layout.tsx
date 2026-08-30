@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { FitterShell } from "@/features/fitter/components/fitter-shell";
+import { THEME_COLOR } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Island Media Field",
@@ -24,7 +25,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#1b5e78",
+  themeColor: THEME_COLOR,
 };
 
 const FitterLayout = ({ children }: { children: React.ReactNode }) => (

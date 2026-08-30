@@ -26,9 +26,19 @@ export const GET = async (
         (await collections.organisations()).findOne({ id: contract.organisationId }),
         (await collections.campaigns()).findOne({ contractId }),
         (await collections.workOrders()).find({ contractId }).toArray(),
-        (await collections.serviceEvents()).find({ contractId }).sort({ at: 1 }).toArray(),
+        (await collections.serviceEvents())
+          .find({ contractId })
+          .sort({ at: 1 })
+          .toArray(),
         (await collections.clientRequests()).find({ contractId }).toArray(),
       ]);
+
+    const workOrderIds = workOrderDocs.map((wo) => wo.id);
+    const proofDocs = await (
+      await collections.proofRecords()
+    )
+      .find({ workOrderId: { $in: workOrderIds } })
+      .toArray();
 
     const { _id, ...contractData } = contract;
 
@@ -36,7 +46,13 @@ export const GET = async (
       ...contractData,
       organisationName: orgDoc?.name ?? contract.organisationId,
       campaign: campaignDoc ? (({ _id: campaignId, ...c }) => c)(campaignDoc) : null,
-      workOrders: workOrderDocs.map(({ _id: workOrderId, ...wo }) => wo),
+      workOrders: workOrderDocs.map(({ _id: workOrderId, ...wo }) => ({
+        ...wo,
+        proofRecords: proofDocs
+          .filter((p) => p.workOrderId === wo.id)
+          .map(({ _id: proofId, ...p }) => p),
+      })),
+      proofRecords: proofDocs.map(({ _id: proofId, ...p }) => p),
       serviceEvents: serviceEventDocs.map(({ _id: eventId, ...se }) => se),
       clientRequests: clientRequestDocs.map(({ _id: requestId, ...cr }) => cr),
     });

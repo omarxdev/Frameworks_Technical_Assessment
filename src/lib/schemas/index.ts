@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-// Base Types
 export const UserRoleSchema = z.enum(["client", "manager", "fitter"]);
 export type UserRole = z.infer<typeof UserRoleSchema>;
 
@@ -29,13 +28,14 @@ export const SessionSchema = z.object({
 export type Session = z.infer<typeof SessionSchema>;
 
 export const RegisterInputSchema = z.object({
-  organisationName: z.string().min(2, "Organisation name must be at least 2 characters"),
+  organisationName: z
+    .string()
+    .min(2, "Organisation name must be at least 2 characters"),
   contactName: z.string().min(2, "Contact name must be at least 2 characters"),
   email: z.string().email("Valid email address is required"),
 });
 export type RegisterInput = z.infer<typeof RegisterInputSchema>;
 
-// Media Owners & Locations
 export const MediaOwnerSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -48,7 +48,6 @@ export const LocationSchema = z.object({
 });
 export type Location = z.infer<typeof LocationSchema>;
 
-// Indicative Rates & Creative Specs
 export const IndicativeRateSchema = z.object({
   currency: z.literal("GBP").default("GBP"),
   amount: z.number().nullable().optional(),
@@ -61,7 +60,6 @@ export type IndicativeRate = z.infer<typeof IndicativeRateSchema>;
 export const CreativeSpecSchema = z.record(z.any()).nullable().optional();
 export type CreativeSpec = z.infer<typeof CreativeSpecSchema>;
 
-// Availability
 export const AvailabilityStateSchema = z.enum([
   "available",
   "unavailable",
@@ -91,7 +89,6 @@ export const AvailabilitySummarySchema = z.object({
 });
 export type AvailabilitySummary = z.infer<typeof AvailabilitySummarySchema>;
 
-// Products & Assets
 export const AllocationModelSchema = z.enum(["exclusive_asset", "capacity_pool"]);
 export type AllocationModel = z.infer<typeof AllocationModelSchema>;
 
@@ -139,9 +136,10 @@ export const CapacityPoolSchema = z.object({
 });
 export type CapacityPool = z.infer<typeof CapacityPoolSchema>;
 
-// Product Search Results & Queries
 export const ProductSearchQuerySchema = z.object({
-  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (YYYY-MM-DD)"),
+  startDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (YYYY-MM-DD)"),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (YYYY-MM-DD)"),
   mediaType: z.string().nullable().optional(),
   locationId: z.string().nullable().optional(),
@@ -169,7 +167,6 @@ export const ProductDetailSchema = ProductSearchResultSchema.extend({
 });
 export type ProductDetail = z.infer<typeof ProductDetailSchema>;
 
-// Bookings, Holds & Outages
 export const BookingSchema = z.object({
   id: z.string(),
   campaignName: z.string(),
@@ -206,7 +203,6 @@ export const OutageSchema = z.object({
 });
 export type Outage = z.infer<typeof OutageSchema>;
 
-// History Entries
 export const HistoryEntrySchema = z.object({
   at: z.string(),
   actor: z.string(),
@@ -215,7 +211,6 @@ export const HistoryEntrySchema = z.object({
 });
 export type HistoryEntry = z.infer<typeof HistoryEntrySchema>;
 
-// Booking Requests
 export const BookingRequestStatusSchema = z.enum([
   "submitted",
   "information_required",
@@ -279,7 +274,6 @@ export const ManagementDecisionSchema = z.object({
 });
 export type ManagementDecision = z.infer<typeof ManagementDecisionSchema>;
 
-// Contracts
 export const ContractStatusSchema = z.enum([
   "draft",
   "issued",
@@ -327,6 +321,7 @@ export const ContractSchema = z.object({
   acceptedAt: z.string().nullable().optional(),
   activatedAt: z.string().nullable().optional(),
   items: z.array(ContractItemSchema),
+  bookingIds: z.array(z.string()).default([]),
   history: z.array(HistoryEntrySchema),
 });
 export type Contract = z.infer<typeof ContractSchema>;
@@ -347,7 +342,42 @@ export const ClientContractActionSchema = z.object({
 });
 export type ClientContractAction = z.infer<typeof ClientContractActionSchema>;
 
-// Campaigns
+export const ManagementContractActionSchema = z.object({
+  action: z.enum(["complete"]),
+  note: z.string().nullable().optional(),
+});
+export type ManagementContractAction = z.infer<typeof ManagementContractActionSchema>;
+
+export const ClientRequestTypeSchema = z.enum(["contract_change", "cancellation"]);
+export type ClientRequestType = z.infer<typeof ClientRequestTypeSchema>;
+
+export const ClientRequestStatusSchema = z.enum([
+  "submitted",
+  "approved",
+  "declined",
+  "resolved",
+]);
+export type ClientRequestStatus = z.infer<typeof ClientRequestStatusSchema>;
+
+export const ClientRequestSchema = z.object({
+  id: z.string(),
+  organisationId: z.string(),
+  contractId: z.string(),
+  type: ClientRequestTypeSchema,
+  status: ClientRequestStatusSchema,
+  createdAt: z.string(),
+  summary: z.string().nullable().optional(),
+  resolvedAt: z.string().nullable().optional(),
+  history: z.array(HistoryEntrySchema).default([]),
+});
+export type ClientRequest = z.infer<typeof ClientRequestSchema>;
+
+export const ClientRequestDecisionSchema = z.object({
+  action: z.enum(["approve", "decline"]),
+  note: z.string().nullable().optional(),
+});
+export type ClientRequestDecision = z.infer<typeof ClientRequestDecisionSchema>;
+
 export const CampaignStatusSchema = z.enum([
   "awaiting_contract_acceptance",
   "active",
@@ -368,7 +398,6 @@ export const CampaignSchema = z.object({
 });
 export type Campaign = z.infer<typeof CampaignSchema>;
 
-// Service Events & Proof
 export const ServiceEventSchema = z.object({
   id: z.string(),
   organisationId: z.string().optional(),
@@ -398,7 +427,7 @@ export const ClientContractDetailSchema = ContractSchema.extend({
   campaign: CampaignSchema.nullable().optional(),
   serviceEvents: z.array(ServiceEventSchema).default([]),
   proofRecords: z.array(ProofRecordSchema).default([]),
-  clientRequests: z.array(z.record(z.any())).default([]),
+  clientRequests: z.array(ClientRequestSchema).default([]),
 });
 export type ClientContractDetail = z.infer<typeof ClientContractDetailSchema>;
 
@@ -410,7 +439,6 @@ export const ClientSummarySchema = z.object({
 });
 export type ClientSummary = z.infer<typeof ClientSummarySchema>;
 
-// Work Orders
 export const WorkOrderTypeSchema = z.enum([
   "survey",
   "production",
@@ -470,9 +498,22 @@ export const WorkOrderStatusUpdateSchema = z.object({
 });
 export type WorkOrderStatusUpdate = z.infer<typeof WorkOrderStatusUpdateSchema>;
 
-// Dashboard & Errors
+export const AttentionPrioritySchema = z.enum(["urgent", "high", "normal"]);
+export type AttentionPriority = z.infer<typeof AttentionPrioritySchema>;
+
+export const AttentionItemSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  priority: AttentionPrioritySchema,
+  title: z.string(),
+  message: z.string(),
+  link: z.string().nullable().optional(),
+  entityId: z.string().nullable().optional(),
+});
+export type AttentionItem = z.infer<typeof AttentionItemSchema>;
+
 export const ManagementDashboardSchema = z.object({
-  attentionItems: z.array(z.record(z.any())),
+  attentionItems: z.array(AttentionItemSchema),
   counts: z.record(z.number()),
   upcomingWorkOrders: z.array(WorkOrderSchema),
 });

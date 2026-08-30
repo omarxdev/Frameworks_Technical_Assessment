@@ -1,0 +1,7 @@
+.next
+node_modules
+bun.lock
+tsconfig.tsbuildinfo
+__MACOSX
+Frameworks_Technical_Assessment_Candidate_Pack*/
+public

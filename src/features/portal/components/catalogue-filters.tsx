@@ -5,6 +5,7 @@ import { RotateCcw, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Select,
   SelectContent,
@@ -52,35 +53,31 @@ export const CatalogueFilterBar = ({
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4"
+      className="bg-card ring-foreground/10 flex flex-col gap-4 rounded-xl p-4 ring-1"
     >
       <div className="flex items-center gap-2 text-sm font-medium">
-        <SlidersHorizontal className="size-4 text-primary" />
+        <SlidersHorizontal className="text-primary size-4" />
         Choose your campaign dates
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="startDate">Start date</Label>
-          <Input
+          <DatePicker
             id="startDate"
-            type="date"
             min={FIXTURE_TODAY}
             value={draft.startDate}
-            onChange={(event) =>
-              handleChange({ startDate: event.target.value })
-            }
+            onChange={(startDate) => handleChange({ startDate })}
           />
         </div>
 
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="endDate">End date</Label>
-          <Input
+          <DatePicker
             id="endDate"
-            type="date"
             min={draft.startDate || FIXTURE_TODAY}
             value={draft.endDate}
-            onChange={(event) => handleChange({ endDate: event.target.value })}
+            onChange={(endDate) => handleChange({ endDate })}
           />
         </div>
 
@@ -138,17 +135,15 @@ export const CatalogueFilterBar = ({
             inputMode="numeric"
             placeholder="No limit"
             value={draft.maxMonthlyBudget}
-            onChange={(event) =>
-              handleChange({ maxMonthlyBudget: event.target.value })
-            }
+            onChange={(event) => handleChange({ maxMonthlyBudget: event.target.value })}
           />
         </div>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-xs text-muted-foreground">
-          Dates are half-open: the end date is the first day you are no longer
-          on site. Budget filtering hides products priced on request.
+        <p className="text-muted-foreground text-xs">
+          Dates are half-open: the end date is the first day you are no longer on site.
+          Budget filtering hides products priced on request.
         </p>
         <div className="flex items-center gap-2">
           <Button
@@ -158,7 +153,7 @@ export const CatalogueFilterBar = ({
             onClick={handleReset}
             disabled={isFetching}
           >
-            <RotateCcw className="size-3.5" />
+            <RotateCcw className="size-4" />
             Reset
           </Button>
           <Button type="submit" size="sm" disabled={!rangeValid || isFetching}>
@@ -168,7 +163,7 @@ export const CatalogueFilterBar = ({
       </div>
 
       {!rangeValid && (
-        <p role="alert" className="text-sm text-stop-foreground">
+        <p role="alert" className="text-stop-foreground text-sm">
           The start date must be strictly before the end date.
         </p>
       )}

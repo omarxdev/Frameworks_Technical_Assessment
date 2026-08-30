@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Controller, useForm } from "react-hook-form";
 import { ArrowLeft, EyeOff, Loader2 } from "lucide-react";
+import { z } from "zod";
+import { usePrototypeAccounts } from "@/components/shared/role-switcher";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DateTimePicker } from "@/components/ui/date-picker";
 import {
   Select,
   SelectContent,
@@ -14,46 +18,85 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Callout, ErrorState, LoadingState } from "@/components/ui/states";
+import { Callout, LoadingState } from "@/components/ui/states";
 import { Textarea } from "@/components/ui/textarea";
+import { ManagementErrorState } from "@/features/management/components/management-states";
 import {
   asApiError,
   useCreateWorkOrder,
 } from "@/features/management/hooks/use-management-actions";
 import { useWorkOrders } from "@/features/management/hooks/use-management-data";
-import { toIsoFromLocalInput } from "@/features/management/lib/format";
-import { PROTOTYPE_USER_PROFILES } from "@/lib/constants";
+import { toIsoFromLocalInput } from "@/lib/format";
+import { WorkOrderTypeSchema } from "@/lib/schemas";
+import { PageTitle } from "@/components/ui/typography";
 
-const workOrderTypes = ["survey", "production", "installation", "maintenance", "removal"];
+const WorkOrderFormSchema = z
+  .object({
+    campaignId: z.string().min(1, "Choose the campaign this job belongs to"),
+    contractId: z.string().min(1, "Choose the contract this job bills against"),
+    type: WorkOrderTypeSchema,
+    assignedUserId: z.string().min(1, "Assign a fitter"),
+    assetId: z.string().min(1, "Choose the asset being worked on"),
+    scheduledStart: z.string().min(1, "Set a start time"),
+    scheduledEnd: z.string().min(1, "Set an end time"),
+    locationLabel: z.string().min(2, "Give the fitter a location they can find"),
+    instructions: z
+      .string()
+      .min(10, "Tell the fitter what to do and what to photograph"),
+    internalNotes: z.string(),
+  })
+  .refine((values) => values.scheduledStart < values.scheduledEnd, {
+    path: ["scheduledEnd"],
+    message: "The end time must be after the start time",
+  });
 
-const fitters = PROTOTYPE_USER_PROFILES.filter((profile) => profile.role === "fitter");
+type WorkOrderFormValues = z.infer<typeof WorkOrderFormSchema>;
+
+const FieldError = ({ message }: { message?: string }) =>
+  message ? (
+    <p role="alert" className="text-stop-foreground text-xs">
+      {message}
+    </p>
+  ) : null;
 
 export const WorkOrderForm = () => {
   const router = useRouter();
   const references = useWorkOrders("all");
+  const accounts = usePrototypeAccounts();
   const createWorkOrder = useCreateWorkOrder();
   const apiError = asApiError(createWorkOrder.error);
 
-  const [campaignId, setCampaignId] = useState("");
-  const [contractId, setContractId] = useState("");
-  const [type, setType] = useState("installation");
-  const [assignedUserId, setAssignedUserId] = useState(fitters[0]?.id ?? "");
-  const [assetId, setAssetId] = useState("");
-  const [scheduledStart, setScheduledStart] = useState("2027-01-20T09:00");
-  const [scheduledEnd, setScheduledEnd] = useState("2027-01-20T12:00");
-  const [locationLabel, setLocationLabel] = useState("");
-  const [instructions, setInstructions] = useState("");
-  const [internalNotes, setInternalNotes] = useState("");
+  const {
+    register,
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors },
+  } = useForm<WorkOrderFormValues>({
+    resolver: zodResolver(WorkOrderFormSchema),
+    defaultValues: {
+      campaignId: "",
+      contractId: "",
+      type: "installation",
+      assignedUserId: "",
+      assetId: "",
+      scheduledStart: "2027-01-20T09:00",
+      scheduledEnd: "2027-01-20T12:00",
+      locationLabel: "",
+      instructions: "",
+      internalNotes: "",
+    },
+  });
 
-  if (references.isPending) return <LoadingState label="Loading contracts and assets" />;
+  if (references.isPending)
+    return <LoadingState label="Loading contracts and assets" />;
 
   if (references.isError) {
     return (
-      <ErrorState
+      <ManagementErrorState
+        error={references.error}
         title="The work order form could not be prepared"
-        message={
-          references.error instanceof Error ? references.error.message : undefined
-        }
+        fallback="Contracts and assets could not be loaded."
         onRetry={() => references.refetch()}
       />
     );
@@ -61,47 +104,44 @@ export const WorkOrderForm = () => {
 
   const { campaigns, contracts, assets } = references.data.references;
   const activeAssets = assets.filter((asset) => asset.status === "active");
+  const fitters = (accounts.data?.items ?? []).filter(
+    (account) => account.role === "fitter"
+  );
 
   const handleCampaignChange = (value: string) => {
-    setCampaignId(value);
+    setValue("campaignId", value, { shouldValidate: true });
     const campaign = campaigns.find((entry) => entry.id === value);
-    if (campaign) setContractId(campaign.contractId);
+    if (campaign) {
+      setValue("contractId", campaign.contractId, { shouldValidate: true });
+    }
   };
 
-  const handleSubmit = (event: React.FormEvent) => {
-    event.preventDefault();
-
+  const onSubmit = handleSubmit((values) => {
     createWorkOrder.mutate(
       {
-        campaignId,
-        contractId,
-        type,
-        assignedUserId,
-        assetId,
-        scheduledStart: toIsoFromLocalInput(scheduledStart),
-        scheduledEnd: toIsoFromLocalInput(scheduledEnd),
-        locationLabel,
-        instructions,
-        internalNotes: internalNotes.trim() ? internalNotes.trim() : undefined,
+        ...values,
+        scheduledStart: toIsoFromLocalInput(values.scheduledStart),
+        scheduledEnd: toIsoFromLocalInput(values.scheduledEnd),
+        internalNotes: values.internalNotes.trim() || undefined,
       },
       { onSuccess: () => router.push("/management/work-orders") }
     );
-  };
+  });
 
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-3">
-        <Button asChild size="sm" variant="ghost" className="w-fit gap-1.5 px-2">
+        <Button asChild size="sm" variant="ghost" className="w-fit">
           <Link href="/management/work-orders">
-            <ArrowLeft className="size-3.5" />
+            <ArrowLeft className="size-4" />
             All work orders
           </Link>
         </Button>
         <div>
-          <h1 className="font-heading text-2xl font-semibold tracking-tight">
+          <PageTitle>
             New work order
-          </h1>
-          <p className="text-sm text-muted-foreground">
+          </PageTitle>
+          <p className="text-muted-foreground text-sm">
             Assign a field job against a campaign. The client sees an
             &ldquo;installation scheduled&rdquo; update, never the internal notes.
           </p>
@@ -109,121 +149,166 @@ export const WorkOrderForm = () => {
       </div>
 
       <form
-        onSubmit={handleSubmit}
-        className="flex max-w-3xl flex-col gap-5 rounded-xl border border-border bg-card p-5"
+        onSubmit={onSubmit}
+        noValidate
+        className="bg-card ring-foreground/10 flex max-w-3xl flex-col gap-5 rounded-xl p-4 ring-1"
       >
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="campaign">Campaign</Label>
-            <Select value={campaignId} onValueChange={handleCampaignChange} required>
-              <SelectTrigger id="campaign" className="w-full">
-                <SelectValue placeholder="Select a campaign" />
-              </SelectTrigger>
-              <SelectContent>
-                {campaigns.map((campaign) => (
-                  <SelectItem key={campaign.id} value={campaign.id}>
-                    {campaign.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Controller
+              control={control}
+              name="campaignId"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={handleCampaignChange}>
+                  <SelectTrigger id="campaign" className="w-full">
+                    <SelectValue placeholder="Select a campaign" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {campaigns.map((campaign) => (
+                      <SelectItem key={campaign.id} value={campaign.id}>
+                        {campaign.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            <FieldError message={errors.campaignId?.message} />
           </div>
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="contract">Contract</Label>
-            <Select value={contractId} onValueChange={setContractId} required>
-              <SelectTrigger id="contract" className="w-full">
-                <SelectValue placeholder="Select a contract" />
-              </SelectTrigger>
-              <SelectContent>
-                {contracts.map((contract) => (
-                  <SelectItem key={contract.id} value={contract.id}>
-                    {contract.id} · {contract.status}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Controller
+              control={control}
+              name="contractId"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger id="contract" className="w-full">
+                    <SelectValue placeholder="Select a contract" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {contracts.map((contract) => (
+                      <SelectItem key={contract.id} value={contract.id}>
+                        {contract.id} · {contract.status}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            <FieldError message={errors.contractId?.message} />
           </div>
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="type">Type</Label>
-            <Select value={type} onValueChange={setType}>
-              <SelectTrigger id="type" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {workOrderTypes.map((option) => (
-                  <SelectItem key={option} value={option}>
-                    {option}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Controller
+              control={control}
+              name="type"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger id="type" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {WorkOrderTypeSchema.options.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            <FieldError message={errors.type?.message} />
           </div>
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="fitter">Assigned fitter</Label>
-            <Select value={assignedUserId} onValueChange={setAssignedUserId} required>
-              <SelectTrigger id="fitter" className="w-full">
-                <SelectValue placeholder="Select a fitter" />
-              </SelectTrigger>
-              <SelectContent>
-                {fitters.map((fitter) => (
-                  <SelectItem key={fitter.id} value={fitter.id}>
-                    {fitter.name} · {fitter.badge}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Controller
+              control={control}
+              name="assignedUserId"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger id="fitter" className="w-full">
+                    <SelectValue placeholder="Select a fitter" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {fitters.map((fitter) => (
+                      <SelectItem key={fitter.id} value={fitter.id}>
+                        {fitter.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            <FieldError message={errors.assignedUserId?.message} />
           </div>
 
           <div className="flex flex-col gap-1.5 md:col-span-2">
             <Label htmlFor="asset">Asset</Label>
-            <Select value={assetId} onValueChange={setAssetId} required>
-              <SelectTrigger id="asset" className="w-full">
-                <SelectValue placeholder="Select an asset" />
-              </SelectTrigger>
-              <SelectContent>
-                {activeAssets.map((asset) => (
-                  <SelectItem key={asset.id} value={asset.id}>
-                    {asset.name} · {asset.id}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Controller
+              control={control}
+              name="assetId"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger id="asset" className="w-full">
+                    <SelectValue placeholder="Select an asset" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {activeAssets.map((asset) => (
+                      <SelectItem key={asset.id} value={asset.id}>
+                        {asset.name} · {asset.id}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            <FieldError message={errors.assetId?.message} />
           </div>
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="scheduled-start">Scheduled start (UTC)</Label>
-            <Input
-              id="scheduled-start"
-              type="datetime-local"
-              required
-              value={scheduledStart}
-              onChange={(event) => setScheduledStart(event.target.value)}
+            <Controller
+              control={control}
+              name="scheduledStart"
+              render={({ field }) => (
+                <DateTimePicker
+                  id="scheduled-start"
+                  value={field.value}
+                  onChange={field.onChange}
+                />
+              )}
             />
+            <FieldError message={errors.scheduledStart?.message} />
           </div>
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="scheduled-end">Scheduled end (UTC)</Label>
-            <Input
-              id="scheduled-end"
-              type="datetime-local"
-              required
-              value={scheduledEnd}
-              onChange={(event) => setScheduledEnd(event.target.value)}
+            <Controller
+              control={control}
+              name="scheduledEnd"
+              render={({ field }) => (
+                <DateTimePicker
+                  id="scheduled-end"
+                  value={field.value}
+                  onChange={field.onChange}
+                />
+              )}
             />
+            <FieldError message={errors.scheduledEnd?.message} />
           </div>
 
           <div className="flex flex-col gap-1.5 md:col-span-2">
             <Label htmlFor="location-label">Location label</Label>
             <Input
               id="location-label"
-              required
               placeholder="ParcelFleet East depot"
-              value={locationLabel}
-              onChange={(event) => setLocationLabel(event.target.value)}
+              {...register("locationLabel")}
             />
+            <FieldError message={errors.locationLabel?.message} />
           </div>
         </div>
 
@@ -232,42 +317,40 @@ export const WorkOrderForm = () => {
           <Textarea
             id="instructions"
             rows={3}
-            required
             placeholder="What to fit, what to photograph, who to report to on arrival."
-            value={instructions}
-            onChange={(event) => setInstructions(event.target.value)}
+            {...register("instructions")}
           />
+          <FieldError message={errors.instructions?.message} />
         </div>
 
-        <div className="flex flex-col gap-1.5 rounded-lg border border-border bg-muted/50 p-4">
+        <div className="border-border bg-muted/50 flex flex-col gap-1.5 rounded-lg border p-4">
           <Label htmlFor="internal-notes" className="flex items-center gap-1.5">
-            <EyeOff className="size-3.5" />
+            <EyeOff className="size-4" />
             Internal notes
           </Label>
-          <p className="text-xs text-muted-foreground">
-            Visible to management and the assigned fitter only. This is never sent to the
-            client portal or included in any client-visible timeline.
+          <p className="text-muted-foreground text-xs">
+            Management only. These notes are stripped from the field app payload and
+            never appear in the client portal or any client-visible timeline.
           </p>
           <Textarea
             id="internal-notes"
             rows={3}
             placeholder="Depot gate codes, margin notes, escalation contacts."
-            value={internalNotes}
-            onChange={(event) => setInternalNotes(event.target.value)}
+            {...register("internalNotes")}
           />
         </div>
 
         {apiError && (
-          <Callout tone="stop" title={`Could not create the work order (${apiError.code})`}>
+          <Callout
+            tone="stop"
+            title={`Could not create the work order (${apiError.code})`}
+          >
             {apiError.message}
           </Callout>
         )}
 
         <div className="flex flex-wrap gap-2">
-          <Button
-            type="submit"
-            disabled={createWorkOrder.isPending || !campaignId || !contractId || !assetId}
-          >
+          <Button type="submit" disabled={createWorkOrder.isPending}>
             {createWorkOrder.isPending && <Loader2 className="size-4 animate-spin" />}
             Create and assign
           </Button>

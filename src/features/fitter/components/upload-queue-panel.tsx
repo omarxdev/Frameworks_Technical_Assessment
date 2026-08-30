@@ -3,9 +3,10 @@
 import { CloudUpload, Loader2, RefreshCw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/ui/status-pill";
-import { formatDateTime } from "@/features/fitter/lib/format";
+import { formatMoment as formatDateTime } from "@/lib/format";
 import type { QueuedUpload } from "@/stores/use-upload-queue-store";
 import { cn } from "@/lib/utils";
+import { SubsectionLabel } from "@/components/ui/typography";
 
 const toneForQueueStatus = (status: QueuedUpload["status"]) => {
   if (status === "failed") return "stop" as const;
@@ -29,10 +30,10 @@ export const UploadQueuePanel = ({
 
   return (
     <section className="flex flex-col gap-2.5">
-      <h3 className="flex items-center gap-2 text-sm font-semibold tracking-wide uppercase">
+      <SubsectionLabel>
         <CloudUpload className="size-4" />
         Waiting to upload ({items.length})
-      </h3>
+      </SubsectionLabel>
 
       {items.map((item) => (
         <div
@@ -44,23 +45,20 @@ export const UploadQueuePanel = ({
               : "border-border bg-card"
           )}
         >
-          <div className="flex items-start justify-between gap-2">
+          <div className="flex flex-wrap items-start justify-between gap-2">
             <p className="min-w-0 flex-1 truncate text-sm font-medium">
               {item.fileName}
             </p>
-            <StatusPill
-              status={item.status}
-              tone={toneForQueueStatus(item.status)}
-            />
+            <StatusPill status={item.status} tone={toneForQueueStatus(item.status)} />
           </div>
 
-          <p className="text-xs text-muted-foreground">
+          <p className="text-muted-foreground text-xs">
             Queued {formatDateTime(item.queuedAt)} · {item.attempts} attempt
             {item.attempts === 1 ? "" : "s"}
           </p>
 
           {item.lastError && (
-            <p role="alert" className="text-xs text-stop-foreground">
+            <p role="alert" className="text-stop-foreground text-xs">
               {item.lastError}
             </p>
           )}
@@ -68,7 +66,7 @@ export const UploadQueuePanel = ({
           <div className="flex gap-2">
             <Button
               variant="outline"
-              className="h-11 flex-1"
+              size="touch" className="flex-1"
               disabled={item.status === "uploading" || !isOnline}
               onClick={() => onRetry(item)}
             >
@@ -81,7 +79,7 @@ export const UploadQueuePanel = ({
             </Button>
             <Button
               variant="ghost"
-              className="h-11 px-3"
+              size="touch"
               aria-label={`Discard ${item.fileName}`}
               disabled={item.status === "uploading"}
               onClick={() => onDiscard(item.id)}

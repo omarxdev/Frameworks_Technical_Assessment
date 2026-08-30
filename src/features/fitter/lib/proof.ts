@@ -1,4 +1,4 @@
-import { formatBytes } from "@/features/fitter/lib/format";
+import { formatBytes } from "@/lib/format";
 
 export const MAX_PROOF_BYTES = 2 * 1024 * 1024;
 
@@ -35,18 +35,15 @@ export const readFileAsDataUrl = (file: File) =>
     reader.readAsDataURL(file);
   });
 
-export const dataUrlToFile = (
-  dataUrl: string,
-  fileName: string,
-  fileType: string
-) => {
+export const dataUrlToFile = (dataUrl: string, fileName: string, fileType: string) => {
   const [meta, encoded] = dataUrl.split(",");
   const binary = atob(encoded ?? "");
   const bytes = new Uint8Array(binary.length);
 
   for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
 
-  const type = fileType || meta?.slice(5).replace(";base64", "") || "application/octet-stream";
+  const type =
+    fileType || meta?.slice(5).replace(";base64", "") || "application/octet-stream";
 
   return new File([bytes], fileName, { type });
 };

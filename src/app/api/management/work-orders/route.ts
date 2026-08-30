@@ -9,6 +9,7 @@ import {
   withIdempotency,
 } from "@/lib/domain/idempotency";
 import { FIXTURE_CLOCK } from "@/lib/constants";
+import { formatDay } from "@/lib/format";
 import { newServiceEventId, newWorkOrderId } from "@/lib/ids";
 
 export const GET = async (req: NextRequest) => {
@@ -27,13 +28,14 @@ export const GET = async (req: NextRequest) => {
     const workOrdersCol = await collections.workOrders();
     const docs = await workOrdersCol.find(query).sort({ scheduledStart: 1 }).toArray();
 
-    const [assetsDocs, usersDocs, contractsDocs, campaignsDocs, proofDocs] = await Promise.all([
-      (await collections.assets()).find({}).toArray(),
-      (await collections.users()).find({}).toArray(),
-      (await collections.contracts()).find({}).toArray(),
-      (await collections.campaigns()).find({}).toArray(),
-      (await collections.proofRecords()).find({}).toArray(),
-    ]);
+    const [assetsDocs, usersDocs, contractsDocs, campaignsDocs, proofDocs] =
+      await Promise.all([
+        (await collections.assets()).find({}).toArray(),
+        (await collections.users()).find({}).toArray(),
+        (await collections.contracts()).find({}).toArray(),
+        (await collections.campaigns()).find({}).toArray(),
+        (await collections.proofRecords()).find({}).toArray(),
+      ]);
 
     const assetNames = new Map(assetsDocs.map((a) => [a.id, a.name]));
     const userNames = new Map(usersDocs.map((u) => [u.id, u.name]));
@@ -83,7 +85,7 @@ export const GET = async (req: NextRequest) => {
   }
 };
 
-export async function POST(req: NextRequest) {
+export const POST = async (req: NextRequest) => {
   try {
     const guard = await requireRole(req, ["manager"]);
     if (!guard.ok) return guard.response;
@@ -108,7 +110,6 @@ export async function POST(req: NextRequest) {
 
     const data = parseResult.data;
 
-    // Fetch contract to get organisationId
     const contractsCol = await collections.contracts();
     const contract = await contractsCol.findOne({ id: data.contractId });
     if (!contract) {
@@ -156,7 +157,6 @@ export async function POST(req: NextRequest) {
     const workOrdersCol = await collections.workOrders();
     await workOrdersCol.insertOne({ _id: workOrderId, ...newWorkOrder });
 
-    // Emit client-visible service event for scheduled installation
     const serviceEventsCol = await collections.serviceEvents();
     const eventId = newServiceEventId();
     await serviceEventsCol.insertOne({
@@ -170,15 +170,18 @@ export async function POST(req: NextRequest) {
       type: "installation_scheduled",
       title: "Installation scheduled",
       clientVisible: true,
-      clientSummary: `Installation is planned for ${new Date(data.scheduledStart).toLocaleDateString("en-GB", { day: "numeric", month: "long" })}.`,
+      clientSummary: `Installation is planned for ${formatDay(data.scheduledStart)}.`,
     });
 
     await idempotency.commit(newWorkOrder, 201);
     return NextResponse.json(newWorkOrder, { status: 201 });
   } catch (error: any) {
     return NextResponse.json(
-      { code: "WORK_ORDER_CREATE_FAILED", message: error.message || "Failed to create work order" },
+      {
+        code: "WORK_ORDER_CREATE_FAILED",
+        message: error.message || "Failed to create work order",
+      },
       { status: 500 }
     );
   }
-}
+};

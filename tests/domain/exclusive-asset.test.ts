@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { evaluateExclusiveAssetAvailability } from "@/lib/domain/availability/exclusiveAsset";
+import { evaluateExclusiveAssetAvailability } from "@/lib/domain/availability/exclusive-asset";
 import { FIXTURE_CLOCK_DATE } from "@/lib/constants";
 import fixtures from "../../fixtures/island-media-fixtures.json";
 import type { Asset, Booking, Hold, Outage } from "@/lib/schemas";
@@ -11,10 +11,6 @@ describe("Exclusive Asset Availability Engine", () => {
   const outages = fixtures.outages as Outage[];
 
   it("evaluates request-001 (Bus rear panel: 2027-02-12 to 2027-02-18) as UNAVAILABLE (all 3 assets blocked)", () => {
-    // Bus rear panel has 3 active assets:
-    // - Bus 101 rear: booked 2027-02-01 to 2027-03-01 (booking-001)
-    // - Bus 102 rear: booked 2027-02-15 to 2027-04-01 (booking-002)
-    // - Bus 103 rear: outage 2027-02-10 to 2027-02-20 (outage-001)
     const result = evaluateExclusiveAssetAvailability({
       productId: "product-bus-rear",
       startDate: "2027-02-12",
@@ -28,13 +24,12 @@ describe("Exclusive Asset Availability Engine", () => {
 
     expect(result.summary.state).toBe("unavailable");
     expect(result.summary.availableAssetCount).toBe(0);
-    expect(result.assetOptions.every((a) => a.availability.state === "unavailable")).toBe(true);
+    expect(
+      result.assetOptions.every((a) => a.availability.state === "unavailable")
+    ).toBe(true);
   });
 
   it("evaluates Bus rear panel as AVAILABLE when an unblocked window is requested", () => {
-    // Request window after Bus 101/103 are free and before hold-003
-    // Bus 103 rear has hold from 2027-03-05 to 2027-03-15
-    // Between 2027-04-02 and 2027-05-01, assets are free
     const result = evaluateExclusiveAssetAvailability({
       productId: "product-bus-rear",
       startDate: "2027-04-02",
@@ -120,7 +115,6 @@ describe("Exclusive Asset Availability Engine", () => {
       clock: FIXTURE_CLOCK_DATE,
     });
 
-    // Only active assets should be considered
     const retiredAsset = result.assetOptions.find((a) => a.id === "asset-bus-202-wrap");
     expect(retiredAsset).toBeUndefined();
   });

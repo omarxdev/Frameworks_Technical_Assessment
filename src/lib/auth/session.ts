@@ -10,9 +10,7 @@ export interface ResolvedAuthContext {
   organisation: Organisation | null;
 }
 
-export const resolveAuth = async (
-  req: NextRequest
-): Promise<ResolvedAuthContext> => {
+export const resolveAuth = async (req: NextRequest): Promise<ResolvedAuthContext> => {
   let userId: string | null = null;
 
   const headerUserId = req.headers.get("x-prototype-user-id");
@@ -80,9 +78,7 @@ export const requireRole = async (
   if (!roles.includes(user.role)) {
     return {
       ok: false,
-      response: forbidden(
-        `This endpoint requires the ${roles.join(" or ")} role.`
-      ),
+      response: forbidden(`This endpoint requires the ${roles.join(" or ")} role.`),
     };
   }
 
@@ -91,10 +87,7 @@ export const requireRole = async (
 
 export const requireClientOrganisation = async (
   req: NextRequest
-): Promise<
-  | { ok: true; user: User; organisation: Organisation }
-  | RoleGuardFailure
-> => {
+): Promise<{ ok: true; user: User; organisation: Organisation } | RoleGuardFailure> => {
   const guard = await requireRole(req, ["client"]);
   if (!guard.ok) return guard;
 

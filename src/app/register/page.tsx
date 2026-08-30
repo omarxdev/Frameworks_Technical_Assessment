@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Eyebrow, PageTitle } from "@/components/ui/typography";
 import { RegisterForm } from "@/features/portal/components/register-form";
 
 const RegisterPage = () => (
@@ -12,16 +13,13 @@ const RegisterPage = () => (
           Back
         </Link>
       </Button>
-      <span className="text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">
-        Island Media Co
-      </span>
-      <h1 className="font-heading text-2xl font-semibold tracking-tight sm:text-3xl">
+      <Eyebrow>Island Media Co</Eyebrow>
+      <PageTitle>
         Register your organisation
-      </h1>
-      <p className="text-sm text-muted-foreground">
-        Registering costs nothing and commits you to nothing. Everything in the
-        portal — including requests — is non-binding until you accept a
-        contract.
+      </PageTitle>
+      <p className="text-muted-foreground text-sm">
+        Registering costs nothing and commits you to nothing. Everything in the portal —
+        including requests — is non-binding until you accept a contract.
       </p>
     </div>
 

@@ -4,13 +4,7 @@ import { useState } from "react";
 import { CircleCheck, MessageSquareWarning, Ban } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -72,8 +66,7 @@ export const ContractActions = ({
 
   const canAccept = status === "issued";
   const canRequestChanges = status === "issued";
-  const canRequestCancellation =
-    status !== "completed" && status !== "cancelled";
+  const canRequestCancellation = status !== "completed" && status !== "cancelled";
 
   const handleOpen = (action: ContractActionName) => {
     setNote("");
@@ -129,10 +122,10 @@ export const ContractActions = ({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">What you can do</CardTitle>
+        <CardTitle size="lg">What you can do</CardTitle>
         <CardDescription>
-          Change and cancellation requests are reviewed by our team — they are
-          never applied automatically.
+          Change and cancellation requests are reviewed by our team — they are never
+          applied automatically.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
@@ -140,8 +133,8 @@ export const ContractActions = ({
           <Callout tone="stop" title="Acceptance refused — inventory conflict">
             <p>{conflictMessage}</p>
             <p className="mt-1">
-              Nothing has changed on your contract. Our team has been notified
-              and will come back to you with an alternative.
+              Nothing has changed on your contract. Our team has been notified and will
+              come back to you with an alternative.
             </p>
           </Callout>
         )}
@@ -180,17 +173,15 @@ export const ContractActions = ({
         </div>
 
         {!canAccept && (
-          <p className="text-sm text-muted-foreground">
-            Acceptance is only offered while a contract is issued for your
-            review.
+          <p className="text-muted-foreground text-sm">
+            Acceptance is only offered while a contract is issued for your review.
           </p>
         )}
 
         {!canRequestChanges && canRequestCancellation && (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             Changes can only be requested while a contract is issued. For a live
-            contract, raise a cancellation request or speak to your account
-            manager.
+            contract, raise a cancellation request or speak to your account manager.
           </p>
         )}
       </CardContent>
@@ -217,7 +208,7 @@ export const ContractActions = ({
                   }}
                 />
                 {noteError && (
-                  <p className="text-sm text-stop-foreground">{noteError}</p>
+                  <p className="text-stop-foreground text-sm">{noteError}</p>
                 )}
               </div>
 

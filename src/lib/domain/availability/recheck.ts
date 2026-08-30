@@ -1,28 +1,38 @@
 import { collections } from "@/lib/db/collections";
 import { FIXTURE_CLOCK_DATE } from "@/lib/constants";
-import { evaluateExclusiveAssetAvailability } from "./exclusiveAsset";
-import { evaluateCapacityPoolAvailability } from "./capacityPool";
-import type { AvailabilitySummary, AssetOption } from "@/lib/schemas";
+import { evaluateExclusiveAssetAvailability } from "./exclusive-asset";
+import { evaluateCapacityPoolAvailability } from "./capacity-pool";
+import type {
+  Asset,
+  AssetOption,
+  AvailabilitySummary,
+  Booking,
+  CapacityPool,
+  Hold,
+  Outage,
+  Product,
+} from "@/lib/schemas";
 
 export interface InventorySnapshot {
-  products: any[];
-  assets: any[];
-  capacityPools: any[];
-  bookings: any[];
-  holds: any[];
-  outages: any[];
+  products: Product[];
+  assets: Asset[];
+  capacityPools: CapacityPool[];
+  bookings: Booking[];
+  holds: Hold[];
+  outages: Outage[];
 }
 
 export const loadInventory = async (): Promise<InventorySnapshot> => {
-  const [products, assets, capacityPools, bookings, holds, outages] =
-    await Promise.all([
+  const [products, assets, capacityPools, bookings, holds, outages] = await Promise.all(
+    [
       (await collections.products()).find({}).toArray(),
       (await collections.assets()).find({}).toArray(),
       (await collections.capacityPools()).find({}).toArray(),
       (await collections.bookings()).find({}).toArray(),
       (await collections.holds()).find({}).toArray(),
       (await collections.outages()).find({}).toArray(),
-    ]);
+    ]
+  );
 
   return { products, assets, capacityPools, bookings, holds, outages };
 };
@@ -73,9 +83,7 @@ export const checkAvailability = (params: {
     });
 
     if (params.selectedAssetId) {
-      const chosen = result.assetOptions.find(
-        (a) => a.id === params.selectedAssetId
-      );
+      const chosen = result.assetOptions.find((a) => a.id === params.selectedAssetId);
 
       if (!chosen) {
         return {
@@ -126,4 +134,51 @@ export const checkAvailability = (params: {
       ? null
       : `${result.summary.reason} Requested ${required} unit(s), ${remaining} remaining.`,
   };
+};
+
+export const describeAvailability = (params: {
+  inventory: InventorySnapshot;
+  productId: string;
+  startDate: string;
+  endDate: string;
+  clock?: Date;
+}): { summary: AvailabilitySummary; assetOptions: AssetOption[] } => {
+  const clock = params.clock ?? FIXTURE_CLOCK_DATE;
+  const product = params.inventory.products.find((p) => p.id === params.productId);
+
+  if (!product) {
+    return {
+      summary: {
+        state: "unavailable",
+        reason: `Product '${params.productId}' not found.`,
+        calculatedAt: clock.toISOString(),
+      },
+      assetOptions: [],
+    };
+  }
+
+  if (product.allocationModel === "exclusive_asset") {
+    return evaluateExclusiveAssetAvailability({
+      productId: product.id,
+      startDate: params.startDate,
+      endDate: params.endDate,
+      assets: params.inventory.assets,
+      bookings: params.inventory.bookings,
+      holds: params.inventory.holds,
+      outages: params.inventory.outages,
+      clock,
+    });
+  }
+
+  const result = evaluateCapacityPoolAvailability({
+    productId: product.id,
+    startDate: params.startDate,
+    endDate: params.endDate,
+    pools: params.inventory.capacityPools,
+    bookings: params.inventory.bookings,
+    holds: params.inventory.holds,
+    clock,
+  });
+
+  return { summary: result.summary, assetOptions: [] };
 };

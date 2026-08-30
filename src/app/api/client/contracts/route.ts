@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireClientOrganisation } from "@/lib/auth/session";
 import { collections } from "@/lib/db/collections";
 
-export async function GET(req: NextRequest) {
+export const GET = async (req: NextRequest) => {
   try {
     const guard = await requireClientOrganisation(req);
     if (!guard.ok) return guard.response;
@@ -34,8 +34,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ items });
   } catch (error: any) {
     return NextResponse.json(
-      { code: "CONTRACTS_FETCH_FAILED", message: error.message || "Failed to list contracts" },
+      {
+        code: "CONTRACTS_FETCH_FAILED",
+        message: error.message || "Failed to list contracts",
+      },
       { status: 500 }
     );
   }
-}
+};

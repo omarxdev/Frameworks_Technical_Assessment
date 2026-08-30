@@ -54,9 +54,9 @@ export const ShortlistButton = ({
       className={className}
     >
       {shortlisted ? (
-        <BookmarkCheck className="size-3.5 text-primary" />
+        <BookmarkCheck className="text-primary size-4" />
       ) : (
-        <Bookmark className="size-3.5" />
+        <Bookmark className="size-4" />
       )}
       {shortlisted ? "Shortlisted" : "Shortlist"}
     </Button>

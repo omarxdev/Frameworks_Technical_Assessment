@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { forbidden, requireRole } from "@/lib/auth/session";
 import { collections } from "@/lib/db/collections";
 import { WorkOrderStatusUpdateSchema } from "@/lib/schemas";
-import { validateWorkOrderStatusUpdate } from "@/lib/domain/workOrders/stateMachine";
+import { validateWorkOrderStatusUpdate } from "@/lib/domain/work-orders/state-machine";
 import {
   missingKeyResponse,
   readIdempotencyKey,
@@ -41,10 +41,7 @@ export const POST = async (
       );
     }
 
-    if (
-      guard.user.role === "fitter" &&
-      workOrder.assignedUserId !== guard.user.id
-    ) {
+    if (guard.user.role === "fitter" && workOrder.assignedUserId !== guard.user.id) {
       return forbidden("This work order is assigned to another engineer.");
     }
 
@@ -82,10 +79,7 @@ export const POST = async (
 
     if (!check.valid) {
       const status = check.code === "INVALID_TRANSITION" ? 409 : 422;
-      return NextResponse.json(
-        { code: check.code, message: check.error },
-        { status }
-      );
+      return NextResponse.json({ code: check.code, message: check.error }, { status });
     }
 
     const historyEntry = {

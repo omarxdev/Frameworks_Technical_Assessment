@@ -2,27 +2,30 @@
 
 import Link from "next/link";
 import { ArrowLeft, FileText } from "lucide-react";
+import { ManagementErrorState } from "@/features/management/components/management-states";
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/ui/status-pill";
-import { Callout, ErrorState, LoadingState } from "@/components/ui/states";
+import { Callout, LoadingState } from "@/components/ui/states";
 import { AvailabilityPanel } from "@/features/management/components/availability-panel";
 import { DecisionPanel } from "@/features/management/components/decision-panel";
 import { DraftContractForm } from "@/features/management/components/draft-contract-form";
-import { HistoryTimeline } from "@/features/management/components/history-timeline";
+import { Timeline, historyItems } from "@/components/shared/timeline";
+import { PageTitle, SectionTitle } from "@/components/ui/typography";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   useBookingRequest,
   useProductAssetOptions,
 } from "@/features/management/hooks/use-management-data";
 import {
-  formatDate,
   formatDateRange,
-  formatDateTime,
+  formatDay as formatDate,
+  formatMoment as formatDateTime,
   formatMoney,
-} from "@/features/management/lib/format";
+} from "@/lib/format";
 
 const DetailRow = ({ label, value }: { label: string; value: React.ReactNode }) => (
-  <div className="flex flex-col gap-0.5 border-b border-border py-2.5 last:border-b-0">
-    <dt className="text-xs text-muted-foreground">{label}</dt>
+  <div className="border-border flex flex-col gap-0.5 border-b py-2.5 last:border-b-0">
+    <dt className="text-muted-foreground text-xs">{label}</dt>
     <dd className="text-sm font-medium break-words">{value}</dd>
   </div>
 );
@@ -42,9 +45,10 @@ export const RequestDetailView = ({ requestId }: { requestId: string }) => {
 
   if (isError) {
     return (
-      <ErrorState
+      <ManagementErrorState
+        error={error}
         title="This booking request could not be loaded"
-        message={error instanceof Error ? error.message : undefined}
+        fallback="The booking request could not be loaded."
         onRetry={() => refetch()}
       />
     );
@@ -55,19 +59,19 @@ export const RequestDetailView = ({ requestId }: { requestId: string }) => {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-3">
-        <Button asChild size="sm" variant="ghost" className="w-fit gap-1.5 px-2">
+        <Button asChild size="sm" variant="ghost" className="w-fit">
           <Link href="/management/requests">
-            <ArrowLeft className="size-3.5" />
+            <ArrowLeft className="size-4" />
             All requests
           </Link>
         </Button>
 
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="font-heading text-2xl font-semibold tracking-tight">
+            <PageTitle>
               {data.organisation.name}
-            </h1>
-            <p className="text-sm text-muted-foreground">
+            </PageTitle>
+            <p className="text-muted-foreground text-sm">
               {data.product.name} · {formatDateRange(data.startDate, data.endDate)} ·{" "}
               {data.id}
             </p>
@@ -80,9 +84,14 @@ export const RequestDetailView = ({ requestId }: { requestId: string }) => {
         <Callout tone="info" title="A draft contract already exists">
           <div className="flex flex-wrap items-center gap-3">
             <span>Contract {data.draftContractId} was created from this request.</span>
-            <Button asChild size="sm" variant="outline" className="gap-1.5 bg-background">
+            <Button
+              asChild
+              size="sm"
+              variant="outline"
+              className="bg-background gap-1.5"
+            >
               <Link href={`/management/contracts/${data.draftContractId}`}>
-                <FileText className="size-3.5" />
+                <FileText className="size-4" />
                 Open contract
               </Link>
             </Button>
@@ -90,7 +99,7 @@ export const RequestDetailView = ({ requestId }: { requestId: string }) => {
         </Callout>
       )}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+      <div className="grid gap-6 xl:grid-cols-detail">
         <div className="flex flex-col gap-6">
           <AvailabilityPanel
             availability={data.currentAvailability}
@@ -123,80 +132,86 @@ export const RequestDetailView = ({ requestId }: { requestId: string }) => {
         </div>
 
         <div className="flex flex-col gap-6">
-          <section className="rounded-xl border border-border bg-card p-5">
-            <h2 className="mb-2 font-heading text-lg font-semibold tracking-tight">
-              Client and brief
-            </h2>
-            <dl>
-              <DetailRow label="Organisation" value={data.organisation.name} />
-              <DetailRow
-                label="Contact"
-                value={
-                  data.advertiser
-                    ? `${data.advertiser.contactName} · ${data.advertiser.email}`
-                    : "Not supplied"
-                }
-              />
-              <DetailRow
-                label="Client since"
-                value={formatDate(data.organisation.createdAt)}
-              />
-              <DetailRow
-                label="Existing contracts"
-                value={data.organisation.contractCount}
-              />
-              <DetailRow label="Objective" value={data.objective} />
-              <DetailRow label="Stated budget" value={formatMoney(data.budget)} />
-              <DetailRow label="Client notes" value={data.notes || "None"} />
-              <DetailRow label="Submitted" value={formatDateTime(data.createdAt)} />
-            </dl>
-          </section>
+          <Card>
+            <CardContent>
+              <SectionTitle className="mb-2">
+                Client and brief
+              </SectionTitle>
+              <dl>
+                <DetailRow label="Organisation" value={data.organisation.name} />
+                <DetailRow
+                  label="Contact"
+                  value={
+                    data.advertiser
+                      ? `${data.advertiser.contactName} · ${data.advertiser.email}`
+                      : "Not supplied"
+                  }
+                />
+                <DetailRow
+                  label="Client since"
+                  value={formatDate(data.organisation.createdAt)}
+                />
+                <DetailRow
+                  label="Existing contracts"
+                  value={data.organisation.contractCount}
+                />
+                <DetailRow label="Objective" value={data.objective} />
+                <DetailRow label="Stated budget" value={formatMoney(data.budget)} />
+                <DetailRow label="Client notes" value={data.notes || "None"} />
+                <DetailRow label="Submitted" value={formatDateTime(data.createdAt)} />
+              </dl>
+                      </CardContent>
+          </Card>
 
-          <section className="rounded-xl border border-border bg-card p-5">
-            <h2 className="mb-2 font-heading text-lg font-semibold tracking-tight">
-              Requested inventory
-            </h2>
-            <dl>
-              <DetailRow label="Product" value={data.product.name} />
-              <DetailRow label="Media owner" value={data.product.mediaOwnerName} />
-              <DetailRow label="Media type" value={data.product.mediaType} />
-              <DetailRow
-                label="Locations"
-                value={data.product.locationNames.join(", ")}
-              />
-              <DetailRow
-                label="Allocation model"
-                value={
-                  data.product.allocationModel === "exclusive_asset"
-                    ? "Exclusive asset"
-                    : "Capacity pool"
-                }
-              />
-              <DetailRow
-                label="Indicative rate"
-                value={data.product.indicativeRate.label}
-              />
-              <DetailRow
-                label="Minimum term"
-                value={`${data.product.minimumTermDays} days`}
-              />
-              <DetailRow
-                label="Requested dates"
-                value={formatDateRange(data.startDate, data.endDate)}
-              />
-              <DetailRow
-                label="Preferred asset"
-                value={data.requestedAssetId || "No preference"}
-              />
-            </dl>
-          </section>
+          <Card>
+            <CardContent>
+              <SectionTitle className="mb-2">
+                Requested inventory
+              </SectionTitle>
+              <dl>
+                <DetailRow label="Product" value={data.product.name} />
+                <DetailRow label="Media owner" value={data.product.mediaOwnerName} />
+                <DetailRow label="Media type" value={data.product.mediaType} />
+                <DetailRow
+                  label="Locations"
+                  value={data.product.locationNames.join(", ")}
+                />
+                <DetailRow
+                  label="Allocation model"
+                  value={
+                    data.product.allocationModel === "exclusive_asset"
+                      ? "Exclusive asset"
+                      : "Capacity pool"
+                  }
+                />
+                <DetailRow
+                  label="Indicative rate"
+                  value={data.product.indicativeRate.label}
+                />
+                <DetailRow
+                  label="Minimum term"
+                  value={`${data.product.minimumTermDays} days`}
+                />
+                <DetailRow
+                  label="Requested dates"
+                  value={formatDateRange(data.startDate, data.endDate)}
+                />
+                <DetailRow
+                  label="Preferred asset"
+                  value={data.requestedAssetId || "No preference"}
+                />
+              </dl>
+                      </CardContent>
+          </Card>
 
-          <section className="rounded-xl border border-border bg-card p-5">
-            <h2 className="mb-3 font-heading text-lg font-semibold tracking-tight">
-              History
-            </h2>
-            <HistoryTimeline entries={data.history} />
-          </section>
+          <Card>
+            <CardContent>
+              <SectionTitle className="mb-3">
+                History
+              </SectionTitle>
+              <Timeline items={historyItems(data.history)} />
+                      </CardContent>
+          </Card>
         </div>
       </div>
     </div>

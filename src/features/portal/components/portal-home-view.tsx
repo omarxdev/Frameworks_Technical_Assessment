@@ -9,27 +9,16 @@ import {
   Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Callout, EmptyState, LoadingState } from "@/components/ui/states";
 import { StatusPill } from "@/components/ui/status-pill";
 import { PortalErrorState } from "@/features/portal/components/portal-states";
-import { ServiceEventTimeline } from "@/features/portal/components/timelines";
+import { Timeline, serviceEventItems } from "@/components/shared/timeline";
+import { Eyebrow, PageTitle, SectionTitle } from "@/components/ui/typography";
 import { useClientSummary } from "@/features/portal/hooks/use-portal-data";
 import { useShortlistCount } from "@/features/portal/hooks/use-shortlist";
-import {
-  formatDateRange,
-  formatMoney,
-} from "@/features/portal/lib/format";
-import type {
-  PortalAttentionItem,
-  PortalSummary,
-} from "@/features/portal/lib/types";
+import { formatDateRange, formatMoney } from "@/lib/format";
+import type { PortalAttentionItem, PortalSummary } from "@/features/portal/lib/types";
 import type { ContractSummary } from "@/lib/schemas";
 
 const steps = [
@@ -58,16 +47,15 @@ const WelcomePanel = ({ organisationName }: { organisationName: string }) => {
 
   return (
     <div className="flex flex-col gap-6">
-      <Card className="overflow-hidden border-primary/25 bg-accent/40">
+      <Card className="border-primary/25 bg-accent/40 overflow-hidden">
         <CardHeader>
-          <CardTitle className="font-heading text-2xl">
+          <CardTitle size="lg">
             Welcome to Island Media Co, {organisationName}
           </CardTitle>
           <CardDescription className="max-w-2xl text-sm">
-            Your account is live and you have no contracts yet. Advertising here
-            starts with an enquiry, not a checkout — find the media you like,
-            tell us what you want to achieve, and we will come back with a
-            contract you can review.
+            Your account is live and you have no contracts yet. Advertising here starts
+            with an enquiry, not a checkout — find the media you like, tell us what you
+            want to achieve, and we will come back with a contract you can review.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap items-center gap-3">
@@ -78,7 +66,7 @@ const WelcomePanel = ({ organisationName }: { organisationName: string }) => {
             </Link>
           </Button>
           {shortlistCount > 0 && (
-            <span className="text-sm text-muted-foreground">
+            <span className="text-muted-foreground text-sm">
               You already have {shortlistCount} shortlisted{" "}
               {shortlistCount === 1 ? "product" : "products"}.
             </span>
@@ -91,12 +79,12 @@ const WelcomePanel = ({ organisationName }: { organisationName: string }) => {
           <Card key={title}>
             <CardHeader>
               <div className="flex items-center gap-2">
-                <span className="flex size-7 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">
+                <span className="bg-muted text-muted-foreground flex size-7 items-center justify-center rounded-full text-xs font-semibold">
                   {index + 1}
                 </span>
-                <Icon className="size-4 text-primary" />
+                <Icon className="text-primary size-4" />
               </div>
-              <CardTitle className="text-base">{title}</CardTitle>
+              <CardTitle>{title}</CardTitle>
               <CardDescription>{description}</CardDescription>
             </CardHeader>
           </Card>
@@ -104,9 +92,9 @@ const WelcomePanel = ({ organisationName }: { organisationName: string }) => {
       </div>
 
       <Callout tone="info" title="Nothing you do here is binding">
-        Submitting a request never reserves inventory and never commits you to
-        spend. A contract only becomes active once our team issues it and you
-        accept it in this portal.
+        Submitting a request never reserves inventory and never commits you to spend. A
+        contract only becomes active once our team issues it and you accept it in this
+        portal.
       </Callout>
     </div>
   );
@@ -119,7 +107,7 @@ const AttentionList = ({ items }: { items: PortalAttentionItem[] }) => {
 
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="font-heading text-lg font-semibold">Needs your attention</h2>
+      <SectionTitle>Needs your attention</SectionTitle>
       {ordered.map((item, index) => (
         <Callout
           key={`${item.type}-${item.contractId ?? index}`}
@@ -144,8 +132,8 @@ const AttentionList = ({ items }: { items: PortalAttentionItem[] }) => {
 
 const ContractList = ({ contracts }: { contracts: ContractSummary[] }) => (
   <section className="flex flex-col gap-3">
-    <div className="flex items-center justify-between gap-3">
-      <h2 className="font-heading text-lg font-semibold">Your contracts</h2>
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <SectionTitle>Your contracts</SectionTitle>
       <Button asChild size="sm" variant="ghost">
         <Link href="/portal/contracts">See all</Link>
       </Button>
@@ -155,7 +143,7 @@ const ContractList = ({ contracts }: { contracts: ContractSummary[] }) => (
         <Card key={contract.id}>
           <CardHeader>
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <CardTitle className="text-base">{contract.id}</CardTitle>
+              <CardTitle>{contract.id}</CardTitle>
               <StatusPill status={contract.status} />
             </div>
             <CardDescription>
@@ -165,11 +153,9 @@ const ContractList = ({ contracts }: { contracts: ContractSummary[] }) => (
           </CardHeader>
           <CardContent className="flex flex-wrap items-center justify-between gap-3">
             {contract.actionRequired ? (
-              <p className="text-sm text-warn-foreground">
-                {contract.actionRequired}
-              </p>
+              <p className="text-warn-foreground text-sm">{contract.actionRequired}</p>
             ) : (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-muted-foreground text-sm">
                 No action needed from you.
               </p>
             )}
@@ -197,7 +183,7 @@ const SummaryContent = ({ summary }: { summary: PortalSummary }) => {
       <ContractList contracts={summary.contracts} />
 
       <section className="flex flex-col gap-3">
-        <h2 className="font-heading text-lg font-semibold">Service activity</h2>
+        <SectionTitle>Service activity</SectionTitle>
         <Card>
           <CardContent>
             {summary.recentServiceEvents.length === 0 ? (
@@ -206,7 +192,7 @@ const SummaryContent = ({ summary }: { summary: PortalSummary }) => {
                 message="Installation, artwork and maintenance updates will appear here as your campaign progresses."
               />
             ) : (
-              <ServiceEventTimeline events={summary.recentServiceEvents} />
+              <Timeline items={serviceEventItems(summary.recentServiceEvents)} />
             )}
           </CardContent>
         </Card>
@@ -221,14 +207,12 @@ export const PortalHomeView = () => {
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-1">
-        <span className="text-xs font-semibold tracking-[0.18em] text-muted-foreground uppercase">
-          Client portal
-        </span>
-        <h1 className="font-heading text-2xl font-semibold tracking-tight sm:text-3xl">
+        <Eyebrow>Client portal</Eyebrow>
+        <PageTitle>
           {data ? data.organisation.name : "Your account"}
-        </h1>
+        </PageTitle>
         {data && (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             {data.organisation.contractCount === 0
               ? "No contracts yet"
               : `${data.contracts.length} contract${data.contracts.length === 1 ? "" : "s"} on file`}
@@ -251,14 +235,13 @@ export const PortalHomeView = () => {
       {data && data.contracts.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">
-              <ClipboardCheck className="mr-2 inline size-4 text-primary" />
+            <CardTitle>
+              <ClipboardCheck className="text-primary mr-2 inline size-4" />
               Planning something new?
             </CardTitle>
             <CardDescription>
-              Requests are non-binding. Browse the catalogue for your dates and
-              send an enquiry — we will confirm availability before anything is
-              committed.
+              Requests are non-binding. Browse the catalogue for your dates and send an
+              enquiry — we will confirm availability before anything is committed.
             </CardDescription>
           </CardHeader>
           <CardContent>

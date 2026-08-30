@@ -19,15 +19,11 @@ export const FitterShell = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <div className="flex min-h-dvh flex-col bg-background">
-      <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur">
+    <div className="bg-background flex min-h-dvh flex-col">
+      <header className="border-border bg-background/95 sticky top-0 z-20 border-b backdrop-blur">
         <div className="mx-auto flex w-full max-w-2xl items-center gap-2 px-4 py-2.5">
           {isDetail ? (
-            <Button
-              asChild
-              variant="ghost"
-              className="-ml-2 h-11 gap-1 px-2 text-sm"
-            >
+            <Button asChild variant="ghost" size="touch" className="-ml-2">
               <Link href="/fitter">
                 <ChevronLeft className="size-4" />
                 Jobs
@@ -35,7 +31,7 @@ export const FitterShell = ({ children }: { children: React.ReactNode }) => {
             </Button>
           ) : (
             <span className="flex items-center gap-2 text-sm font-semibold">
-              <HardHat className="size-4 text-primary" />
+              <HardHat className="text-primary size-4" />
               Island Media Field
             </span>
           )}

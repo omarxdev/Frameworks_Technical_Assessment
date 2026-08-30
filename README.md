@@ -17,26 +17,26 @@ Copy the example environment file and fill it in:
 cp .env.example .env.local
 ```
 
-| Variable | Required | Notes |
-|---|---|---|
-| `MONGODB_URI` | yes | Local `mongodb://127.0.0.1:27017/island-media` or an Atlas URI |
-| `MONGODB_DB` | no | Database name, defaults to `island-media` |
-| `JWT_SECRET` | yes in production | Minimum 32 characters. Falls back to a development value locally and **throws** in production if unset |
-| `NEXT_PUBLIC_APP_URL` | no | Defaults to `http://localhost:3000` |
+| Variable              | Required          | Notes                                                                                                  |
+| --------------------- | ----------------- | ------------------------------------------------------------------------------------------------------ |
+| `MONGODB_URI`         | yes               | Local `mongodb://127.0.0.1:27017/island-media` or an Atlas URI                                         |
+| `MONGODB_DB`          | no                | Database name, defaults to `island-media`                                                              |
+| `JWT_SECRET`          | yes in production | Minimum 32 characters. Falls back to a development value locally and **throws** in production if unset |
+| `NEXT_PUBLIC_APP_URL` | no                | Defaults to `http://localhost:3000`                                                                    |
 
 If no MongoDB is reachable outside production, the app falls back to an in-memory server for that
 process so it still boots. That fallback is disabled in production.
 
 ## Commands
 
-| Task | Command |
-|---|---|
-| Install | `bun install` |
-| Seed / reset fixture data | `bun run seed` |
-| Development | `bun dev` |
-| Tests | `bun run test` |
-| Typecheck | `bun run typecheck` |
-| Production build | `bun run build` |
+| Task                      | Command             |
+| ------------------------- | ------------------- |
+| Install                   | `bun install`       |
+| Seed / reset fixture data | `bun run seed`      |
+| Development               | `bun dev`           |
+| Tests                     | `bun run test`      |
+| Typecheck                 | `bun run typecheck` |
+| Production build          | `bun run build`     |
 
 `bun run seed` is deterministic: it clears every collection and reloads
 `fixtures/island-media-fixtures.json` with the fixture IDs preserved. `POST /api/dev/reset` does the
@@ -47,13 +47,13 @@ same thing over HTTP for use during a demo.
 Use the role switcher in the header of any surface. No passwords — this is a prototype switcher, not
 authentication.
 
-| Role | User | What they demonstrate |
-|---|---|---|
-| Agency manager | Morgan Reed (`user-manager-01`) | Attention dashboard, requests, contracts, work orders |
-| Fitter | Casey Morgan (`user-fitter-01`) | Assigned jobs, progress, proof capture |
-| Client, no contracts | Avery Stone, Silverline Fitness | The zero-contract portal journey |
-| Client, issued contract | Jordan Ellis, Lighthouse Learning | Contract acceptance / change request |
-| Client, active campaign | Taylor Quinn, Oak Legal | Service timeline, pending change request |
+| Role                    | User                              | What they demonstrate                                 |
+| ----------------------- | --------------------------------- | ----------------------------------------------------- |
+| Agency manager          | Morgan Reed (`user-manager-01`)   | Attention dashboard, requests, contracts, work orders |
+| Fitter                  | Casey Morgan (`user-fitter-01`)   | Assigned jobs, progress, proof capture                |
+| Client, no contracts    | Avery Stone, Silverline Fitness   | The zero-contract portal journey                      |
+| Client, issued contract | Jordan Ellis, Lighthouse Learning | Contract acceptance / change request                  |
+| Client, active campaign | Taylor Quinn, Oak Legal           | Service timeline, pending change request              |
 
 New-client registration is at `/register` and persists a real user and organisation.
 
@@ -104,7 +104,7 @@ via the native driver, Vitest with an in-memory MongoDB for tests.
   booking, active hold or confirmed outage.
 - **Capacity pools** are available when overlapping confirmed bookings plus active holds use less
   than the pool capacity.
-- **Holds** block only while `expiresAt > fixtureClock`. Availability is rechecked at approval *and*
+- **Holds** block only while `expiresAt > fixtureClock`. Availability is rechecked at approval _and_
   again at contract activation before any booking is confirmed.
 - **Rates** display the supplied label verbatim. A null amount renders "Price on request" and is
   excluded from a budget-filtered search rather than passing as zero.
@@ -123,18 +123,18 @@ bun run test
 
 61 tests across 8 files, covering all ten required checks:
 
-| # | Required check | Where |
-|---|---|---|
-| 1 | Overlapping exclusive-asset bookings | `tests/domain/exclusiveAsset.test.ts` |
-| 2 | Expired versus active holds | `tests/domain/capacityPool.test.ts` |
-| 3 | Capacity-pool availability | `tests/domain/capacityPool.test.ts` |
-| 4 | Duplicate idempotency key | `tests/api/booking-requests.test.ts` |
-| 5 | No-contract client can use the catalogue | `tests/api/booking-requests.test.ts` |
-| 6 | Contract issue, acceptance, change request | `tests/api/contracts.test.ts` |
-| 7 | Blocked work order requires a reason | `tests/api/work-orders.test.ts` |
-| 8 | Completion requires proof, updates history | `tests/api/work-orders.test.ts` |
-| 9 | Organisation A cannot read B's contract | `tests/api/contracts.test.ts` |
-| 10 | One connected journey | `tests/e2e/connected-journey.test.ts` |
+| #   | Required check                             | Where                                 |
+| --- | ------------------------------------------ | ------------------------------------- |
+| 1   | Overlapping exclusive-asset bookings       | `tests/domain/exclusiveAsset.test.ts` |
+| 2   | Expired versus active holds                | `tests/domain/capacityPool.test.ts`   |
+| 3   | Capacity-pool availability                 | `tests/domain/capacityPool.test.ts`   |
+| 4   | Duplicate idempotency key                  | `tests/api/booking-requests.test.ts`  |
+| 5   | No-contract client can use the catalogue   | `tests/api/booking-requests.test.ts`  |
+| 6   | Contract issue, acceptance, change request | `tests/api/contracts.test.ts`         |
+| 7   | Blocked work order requires a reason       | `tests/api/work-orders.test.ts`       |
+| 8   | Completion requires proof, updates history | `tests/api/work-orders.test.ts`       |
+| 9   | Organisation A cannot read B's contract    | `tests/api/contracts.test.ts`         |
+| 10  | One connected journey                      | `tests/e2e/connected-journey.test.ts` |
 
 Tests run against an in-memory MongoDB, so no running database is required.
 
@@ -168,7 +168,6 @@ Deploys to Vercel as a standard Next.js app. Two things must be set before the f
 
 Seed the deployed database once by calling `POST /api/dev/reset` against the deployment. That
 route exists for demo resets and is another thing to delete before any real use.
-
 
 ## Known limitations
 

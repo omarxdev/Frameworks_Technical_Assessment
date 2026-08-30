@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { ApiRequestError, apiFetch, newIdempotencyKey } from "@/lib/api-client";
 import { managementKeys } from "@/features/management/hooks/use-management-data";
 import type {
+  ClientRequestDecisionPayload,
   ContractCreatePayload,
   DecisionPayload,
   ManagementContractDetail,
@@ -13,6 +14,7 @@ import type {
 import type {
   AvailabilityBlocker,
   BookingRequest,
+  ClientRequest,
   Contract,
   WorkOrder,
 } from "@/lib/schemas";
@@ -87,10 +89,9 @@ export const useIssueContract = (contractId: string) => {
 
   return useMutation({
     mutationFn: () =>
-      apiFetch<ManagementContractDetail>(
-        `/management/contracts/${contractId}/issue`,
-        { method: "POST" }
-      ),
+      apiFetch<ManagementContractDetail>(`/management/contracts/${contractId}/issue`, {
+        method: "POST",
+      }),
     onSuccess: (contract) => {
       queryClient.invalidateQueries({ queryKey: managementKeys.contract(contractId) });
       queryClient.invalidateQueries({ queryKey: managementKeys.dashboard });
@@ -124,6 +125,55 @@ export const useCreateWorkOrder = () => {
     onError: (error) => {
       const apiError = asApiError(error);
       toast.error(apiError?.message ?? "The work order could not be created.");
+    },
+  });
+};
+
+export const useCompleteContract = (contractId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (note?: string) =>
+      apiFetch<ManagementContractDetail>(
+        `/management/contracts/${contractId}/complete`,
+        { method: "POST", body: { note: note ?? "" } }
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: managementKeys.contract(contractId) });
+      queryClient.invalidateQueries({ queryKey: managementKeys.dashboard });
+      toast.success("Contract completed and the client has been told");
+    },
+    onError: (error) => {
+      const apiError = asApiError(error);
+      toast.error(apiError?.message ?? "The contract could not be completed.");
+    },
+  });
+};
+
+export const useDecideClientRequest = (contractId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      clientRequestId,
+      ...payload
+    }: ClientRequestDecisionPayload & { clientRequestId: string }) =>
+      apiFetch<ClientRequest & { contractStatus: string }>(
+        `/management/client-requests/${clientRequestId}`,
+        { method: "POST", body: payload }
+      ),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: managementKeys.contract(contractId) });
+      queryClient.invalidateQueries({ queryKey: managementKeys.dashboard });
+      toast.success(
+        variables.action === "approve"
+          ? "Client request approved"
+          : "Client request declined"
+      );
+    },
+    onError: (error) => {
+      const apiError = asApiError(error);
+      toast.error(apiError?.message ?? "The decision could not be recorded.");
     },
   });
 };

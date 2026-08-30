@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/states";
 import { BlockedDialog } from "@/features/fitter/components/blocked-dialog";
 import { useStatusTransition } from "@/features/fitter/hooks/use-status-transition";
-import { VALID_WORK_ORDER_TRANSITIONS } from "@/lib/domain/workOrders/stateMachine";
+import { VALID_WORK_ORDER_TRANSITIONS } from "@/lib/domain/work-orders/state-machine";
 import type { WorkOrderStatus } from "@/lib/schemas";
+import { SubsectionLabel } from "@/components/ui/typography";
 
 const progressSteps = [
   { status: "travelling" as const, label: "On my way", icon: Truck },
@@ -42,36 +43,33 @@ export const ProgressActions = ({
   if (status === "completed") {
     return (
       <Callout tone="ok" title="Job complete">
-        Proof and completion notes have been filed. No further progress updates
-        are needed.
+        Proof and completion notes have been filed. No further progress updates are
+        needed.
       </Callout>
     );
   }
 
   return (
     <section className="flex flex-col gap-2.5">
-      <h2 className="text-sm font-semibold tracking-wide uppercase">
-        Update progress
-      </h2>
+      <SubsectionLabel as="h2">Update progress</SubsectionLabel>
 
       {steps.length === 0 && !canBlock && (
         <Callout tone="info">
-          No progress updates are available from the {status.replace(/_/g, " ")}{" "}
-          state.
+          No progress updates are available from the {status.replace(/_/g, " ")} state.
         </Callout>
       )}
 
       {steps.map(({ status: next, label, icon: Icon }) => (
         <Button
           key={next}
-          className="h-14 w-full justify-start gap-3 text-base"
+          size="touch-lg" className="w-full justify-start gap-3"
           disabled={transition.isPending}
           onClick={() => handleStep(next)}
         >
           {transition.isPending && transition.variables?.status === next ? (
-            <Loader2 className="size-5 animate-spin" />
+            <Loader2 className="animate-spin" />
           ) : (
-            <Icon className="size-5" />
+            <Icon />
           )}
           {label}
         </Button>
@@ -80,11 +78,11 @@ export const ProgressActions = ({
       {canBlock && (
         <Button
           variant="destructive"
-          className="h-14 w-full justify-start gap-3 text-base"
+          size="touch-lg" className="w-full justify-start gap-3"
           disabled={transition.isPending}
           onClick={() => setIsBlockedOpen(true)}
         >
-          <OctagonAlert className="size-5" />
+          <OctagonAlert />
           Report blocked
         </Button>
       )}

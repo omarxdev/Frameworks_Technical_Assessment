@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, UserRound } from "lucide-react";
 import { apiFetch } from "@/lib/api-client";
-import { PROTOTYPE_USER_PROFILES } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -14,13 +13,29 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import type { UserRole } from "@/lib/schemas";
 
 interface SessionResponse {
-  user: { id: string; name: string; role: string } | null;
+  user: { id: string; name: string; role: UserRole } | null;
   organisation: { id: string; name: string } | null;
 }
 
-const homeForRole = (role: string) => {
+export interface PrototypeAccount {
+  id: string;
+  name: string;
+  role: UserRole;
+  organisationId: string | null;
+  organisationName: string | null;
+  label: string;
+  badge: string;
+  seeded: boolean;
+}
+
+interface AccountsResponse {
+  items: PrototypeAccount[];
+}
+
+export const homeForRole = (role: string) => {
   if (role === "manager") return "/management";
   if (role === "fitter") return "/fitter";
   return "/portal";
@@ -33,12 +48,18 @@ export const useSession = () =>
     staleTime: 30_000,
   });
 
-export const RoleSwitcher = () => {
+export const usePrototypeAccounts = () =>
+  useQuery({
+    queryKey: ["session", "accounts"],
+    queryFn: () => apiFetch<AccountsResponse>("/session/accounts"),
+    staleTime: 30_000,
+  });
+
+export const useSwitchAccount = () => {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { data } = useSession();
 
-  const switchUser = useMutation({
+  return useMutation({
     mutationFn: (userId: string) =>
       apiFetch<SessionResponse>("/session/switch", {
         method: "POST",
@@ -50,34 +71,51 @@ export const RoleSwitcher = () => {
       router.refresh();
     },
   });
+};
+
+export const RoleSwitcher = () => {
+  const router = useRouter();
+  const { data } = useSession();
+  const { data: accounts } = usePrototypeAccounts();
+  const switchAccount = useSwitchAccount();
 
   const current = data?.user;
+  const items = accounts?.items ?? [];
+
+  const staff = items.filter((account) => account.role !== "client");
+  const clients = items.filter((account) => account.role === "client");
+
+  const renderItem = (account: PrototypeAccount) => (
+    <DropdownMenuItem
+      key={account.id}
+      disabled={switchAccount.isPending}
+      onSelect={() => switchAccount.mutate(account.id)}
+      className="flex flex-col items-start gap-0.5"
+    >
+      <span className="text-sm font-medium">{account.label}</span>
+      <span className="text-muted-foreground text-xs">{account.badge}</span>
+    </DropdownMenuItem>
+  );
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
-          <UserRound className="size-3.5" />
+        <Button variant="outline" size="sm">
+          <UserRound className="size-4" />
           <span className="max-w-40 truncate">
             {current ? current.name : "Choose a role"}
           </span>
-          <ChevronDown className="size-3.5 opacity-60" />
+          <ChevronDown className="size-4 opacity-60" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-72">
-        <DropdownMenuLabel>Prototype role switcher</DropdownMenuLabel>
+      <DropdownMenuContent align="end" className="max-h-menu w-menu-width overflow-y-auto">
+        <DropdownMenuLabel>Agency staff</DropdownMenuLabel>
+        {staff.map(renderItem)}
+
         <DropdownMenuSeparator />
-        {PROTOTYPE_USER_PROFILES.map((profile) => (
-          <DropdownMenuItem
-            key={profile.id}
-            disabled={switchUser.isPending}
-            onSelect={() => switchUser.mutate(profile.id)}
-            className="flex flex-col items-start gap-0.5"
-          >
-            <span className="text-sm font-medium">{profile.label}</span>
-            <span className="text-xs text-muted-foreground">{profile.badge}</span>
-          </DropdownMenuItem>
-        ))}
+        <DropdownMenuLabel>Client accounts</DropdownMenuLabel>
+        {clients.map(renderItem)}
+
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => router.push("/register")}>
           Register a new client account

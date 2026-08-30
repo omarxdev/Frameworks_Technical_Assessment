@@ -1,10 +1,13 @@
 import type {
   AssetOption,
+  AttentionItem,
+  AttentionPriority,
   AvailabilityBlocker,
   AvailabilitySummary,
   BookingRequestDetail,
   BookingRequestSummary,
   Campaign,
+  ClientRequest,
   Contract,
   ContractItem,
   HistoryEntry,
@@ -12,18 +15,6 @@ import type {
   ServiceEvent,
   WorkOrder,
 } from "@/lib/schemas";
-
-export type AttentionPriority = "urgent" | "high" | "normal";
-
-export interface AttentionItem {
-  id: string;
-  type: string;
-  priority: AttentionPriority;
-  title: string;
-  message: string;
-  link?: string | null;
-  entityId?: string | null;
-}
 
 export interface ManagementDashboardResponse {
   attentionItems: AttentionItem[];
@@ -73,12 +64,28 @@ export interface WorkOrderListResponse {
   references: WorkOrderReferences;
 }
 
+export interface ManagementWorkOrderDetail extends ManagementWorkOrder {
+  organisationName: string;
+  campaignName: string | null;
+  serviceEvents: ServiceEvent[];
+}
+
+export interface ManagementContractWorkOrder extends WorkOrder {
+  proofRecords: ProofRecord[];
+}
+
 export interface ManagementContractDetail extends Contract {
   organisationName: string;
   campaign: Campaign | null;
-  workOrders: WorkOrder[];
+  workOrders: ManagementContractWorkOrder[];
+  proofRecords: ProofRecord[];
   serviceEvents: ServiceEvent[];
-  clientRequests: Record<string, unknown>[];
+  clientRequests: ClientRequest[];
+}
+
+export interface ClientRequestDecisionPayload {
+  action: "approve" | "decline";
+  note?: string | null;
 }
 
 export interface DecisionPayload {
@@ -109,4 +116,13 @@ export interface WorkOrderCreatePayload {
   internalNotes?: string;
 }
 
-export type { AvailabilityBlocker, BookingRequestDetail, ContractItem, HistoryEntry };
+export type {
+  AttentionItem,
+  AttentionPriority,
+  AvailabilityBlocker,
+  BookingRequestDetail,
+  ClientRequest,
+  ContractItem,
+  HistoryEntry,
+  ProofRecord,
+};

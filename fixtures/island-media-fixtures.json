@@ -45,9 +45,7 @@
       "name": "Bus rear panel",
       "mediaOwnerId": "owner-island-transit",
       "mediaType": "vehicle",
-      "locationIds": [
-        "loc-islandwide"
-      ],
+      "locationIds": ["loc-islandwide"],
       "allocationModel": "exclusive_asset",
       "description": "A rear advertising panel on one named route bus.",
       "indicativeRate": {
@@ -70,9 +68,7 @@
       "name": "Bus full wrap",
       "mediaOwnerId": "owner-island-transit",
       "mediaType": "vehicle",
-      "locationIds": [
-        "loc-islandwide"
-      ],
+      "locationIds": ["loc-islandwide"],
       "allocationModel": "exclusive_asset",
       "description": "A full exterior wrap on one named bus.",
       "indicativeRate": {
@@ -93,9 +89,7 @@
       "name": "Hub portrait screen network",
       "mediaOwnerId": "owner-harbourlink",
       "mediaType": "digital_screen",
-      "locationIds": [
-        "loc-central-hub"
-      ],
+      "locationIds": ["loc-central-hub"],
       "allocationModel": "capacity_pool",
       "capacityPoolId": "pool-hub-screen",
       "description": "A 15-second advert shown across a portrait screen network.",
@@ -119,9 +113,7 @@
       "name": "Hub door panels",
       "mediaOwnerId": "owner-harbourlink",
       "mediaType": "static_site",
-      "locationIds": [
-        "loc-central-hub"
-      ],
+      "locationIds": ["loc-central-hub"],
       "allocationModel": "exclusive_asset",
       "description": "A set of printed panels on one named transport-hub door.",
       "indicativeRate": {
@@ -142,10 +134,7 @@
       "name": "Delivery van rear",
       "mediaOwnerId": "owner-parcelfleet",
       "mediaType": "vehicle",
-      "locationIds": [
-        "loc-east",
-        "loc-west"
-      ],
+      "locationIds": ["loc-east", "loc-west"],
       "allocationModel": "exclusive_asset",
       "description": "A printed rear panel on one named delivery van.",
       "indicativeRate": {
@@ -167,10 +156,7 @@
       "name": "Charging-station screen",
       "mediaOwnerId": "owner-chargego",
       "mediaType": "digital_screen",
-      "locationIds": [
-        "loc-east",
-        "loc-west"
-      ],
+      "locationIds": ["loc-east", "loc-west"],
       "allocationModel": "exclusive_asset",
       "description": "A digital placement on one charging-station display.",
       "indicativeRate": {

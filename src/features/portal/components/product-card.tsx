@@ -3,14 +3,7 @@
 import Link from "next/link";
 import { MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusPill, humanise } from "@/components/ui/status-pill";
 import { ShortlistButton } from "@/features/portal/components/shortlist-button";
 import type { CatalogueFilters } from "@/features/portal/lib/types";
@@ -29,7 +22,7 @@ export const ProductCard = ({
     <Card className="justify-between">
       <CardHeader>
         <div className="flex flex-wrap items-start justify-between gap-2">
-          <CardTitle className="text-base">{product.name}</CardTitle>
+          <CardTitle>{product.name}</CardTitle>
           <StatusPill status={product.availability.state} />
         </div>
         <CardDescription>
@@ -41,16 +34,14 @@ export const ProductCard = ({
         <p className="font-heading text-lg font-semibold">
           {product.indicativeRate.label}
         </p>
-        <div className="flex flex-col gap-1 text-sm text-muted-foreground">
+        <div className="text-muted-foreground flex flex-col gap-1 text-sm">
           <span className="flex items-center gap-1.5">
-            <MapPin className="size-3.5 shrink-0" />
+            <MapPin className="size-4 shrink-0" />
             {product.locationNames.join(", ")}
           </span>
           <span>Minimum term {product.minimumTermDays} days</span>
         </div>
-        <p className="text-sm text-muted-foreground">
-          {product.availability.reason}
-        </p>
+        <p className="text-muted-foreground text-sm">{product.availability.reason}</p>
       </CardContent>
 
       <CardFooter className="flex flex-wrap gap-2">

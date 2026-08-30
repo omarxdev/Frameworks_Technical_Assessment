@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { collections } from "@/lib/db/collections";
 import { signSessionToken } from "@/lib/auth/jwt";
+import { SESSION_COOKIE } from "@/lib/auth/session";
 import type { User, Organisation } from "@/lib/schemas";
 
-export async function POST(req: NextRequest) {
+const SESSION_MAX_AGE = 60 * 60 * 24 * 7;
+
+export const POST = async (req: NextRequest) => {
   try {
     const body = await req.json();
     const { userId } = body;
@@ -50,18 +53,22 @@ export async function POST(req: NextRequest) {
     });
 
     const response = NextResponse.json(sessionPayload, { status: 200 });
-    response.cookies.set("island_session", token, {
+    response.cookies.set(SESSION_COOKIE, token, {
       httpOnly: true,
       path: "/",
       sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: SESSION_MAX_AGE,
     });
 
     return response;
   } catch (error: any) {
     return NextResponse.json(
-      { code: "SESSION_SWITCH_FAILED", message: error.message || "Failed to switch session" },
+      {
+        code: "SESSION_SWITCH_FAILED",
+        message: error.message || "Failed to switch session",
+      },
       { status: 500 }
     );
   }
-}
+};

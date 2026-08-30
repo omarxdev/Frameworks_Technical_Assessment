@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { evaluateCapacityPoolAvailability } from "@/lib/domain/availability/capacityPool";
-import { isHoldActive } from "@/lib/domain/availability/exclusiveAsset";
+import { evaluateCapacityPoolAvailability } from "@/lib/domain/availability/capacity-pool";
+import { isHoldActive } from "@/lib/domain/availability/exclusive-asset";
 import { FIXTURE_CLOCK_DATE } from "@/lib/constants";
 import fixtures from "../../fixtures/island-media-fixtures.json";
 import type { CapacityPool, Booking, Hold } from "@/lib/schemas";
@@ -19,9 +19,6 @@ describe("Capacity Pool Availability Engine", () => {
   });
 
   it("evaluates Hub portrait screen network as UNAVAILABLE during 2027-02-20 to 2027-02-28 (exactly 4/4 capacity used)", () => {
-    // 3 confirmed bookings (booking-006, booking-007, booking-008) = 3 units
-    // + 1 active hold (hold-001) = 1 unit
-    // Total used = 4 units of 4 available -> 0 remaining
     const result = evaluateCapacityPoolAvailability({
       productId: "product-hub-screen",
       startDate: "2027-02-20",
@@ -38,7 +35,6 @@ describe("Capacity Pool Availability Engine", () => {
   });
 
   it("evaluates Hub portrait screen network as AVAILABLE when capacity is open", () => {
-    // In March 2027 (after bookings 006, 007, 008 and hold-001 expire)
     const result = evaluateCapacityPoolAvailability({
       productId: "product-hub-screen",
       startDate: "2027-04-01",

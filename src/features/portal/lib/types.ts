@@ -99,10 +99,7 @@ export interface BookingRequestCreated {
   createdAt: string;
 }
 
-export type ContractActionName =
-  | "accept"
-  | "request_changes"
-  | "request_cancellation";
+export type ContractActionName = "accept" | "request_changes" | "request_cancellation";
 
 export interface ContractActionInput {
   action: ContractActionName;

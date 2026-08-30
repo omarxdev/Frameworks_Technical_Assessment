@@ -221,10 +221,10 @@ storage rather than in the database.
 
 ## AI and development tools
 
-| Tool | Contribution | How you verified the output |
-|---|---|---|
-| Claude Code (Opus 5) | Repository analysis, the Next 16 / React 19 / Tailwind 4 upgrade, the security and lifecycle fixes to the API layer, the availability and idempotency domain work, the full test suite, README and productionisation note | `bunx tsc --noEmit`, `bun run test` (61 tests), `bun run build`, plus manual `curl` probes against a seeded database for role enforcement, org isolation, the 409 conflict path and all four idempotency behaviours |
-| Claude Code subagents (3, parallel) | First-pass implementation of the three UI surfaces from a shared written brief (`docs/ui-build-brief.md`) | Reviewed every file, then re-ran typecheck, the full test suite and a production build; drove each surface in a browser against seeded data |
+| Tool                                | Contribution                                                                                                                                                                                                              | How you verified the output                                                                                                                                                                                         |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Claude Code (Opus 5)                | Repository analysis, the Next 16 / React 19 / Tailwind 4 upgrade, the security and lifecycle fixes to the API layer, the availability and idempotency domain work, the full test suite, README and productionisation note | `bunx tsc --noEmit`, `bun run test` (61 tests), `bun run build`, plus manual `curl` probes against a seeded database for role enforcement, org isolation, the 409 conflict path and all four idempotency behaviours |
+| Claude Code subagents (3, parallel) | First-pass implementation of the three UI surfaces from a shared written brief (`docs/ui-build-brief.md`)                                                                                                                 | Reviewed every file, then re-ran typecheck, the full test suite and a production build; drove each surface in a browser against seeded data                                                                         |
 
 ## Representative prompts or agent instructions
 
@@ -234,15 +234,15 @@ shared components to reuse rather than reinvent, the full API table with which e
 idempotency key, the error codes each surface must handle, the domain rules (fixture clock, half-open
 dates, rate-label handling, the never-imply-approval rule), and a per-surface definition of done.
 
-The instruction that mattered most, repeated to every agent: *"The fixture clock is
+The instruction that mattered most, repeated to every agent: _"The fixture clock is
 `2027-01-15T09:00:00Z`. Import `FIXTURE_CLOCK` from `@/lib/constants`. Never call `new Date()` to mean
-'now' — the seeded data lives in 2027."*
+'now' — the seeded data lives in 2027."_
 
-Also material: *"Display `indicativeRate.label` verbatim. If `amount` is null the label is already
-'Price on request' — never render £0. `monthlyEquivalent` is for the budget filter only."*
+Also material: _"Display `indicativeRate.label` verbatim. If `amount` is null the label is already
+'Price on request' — never render £0. `monthlyEquivalent` is for the budget filter only."_
 
-And for the field app: *"Each queued upload keeps its ORIGINAL idempotency key. A retry after a
-partial success must not double-create."*
+And for the field app: _"Each queued upload keeps its ORIGINAL idempotency key. A retry after a
+partial success must not double-create."_
 
 ## AI-generated mistake or unsafe assumption
 
@@ -252,7 +252,7 @@ partial success must not double-create."*
   used to raise the management dashboard's stale-verification warnings.
 - **Why it was wrong or unsafe:** It inferred a business rule from prose. The fixture asset
   `asset-door-b` happens to carry the note "Owner confirmation recommended before approval", so the
-  check appeared to work. But `asset-ev-screen-02` was verified on 2026-09-01 — a month *staler* than
+  check appeared to work. But `asset-ev-screen-02` was verified on 2026-09-01 — a month _staler_ than
   `asset-door-b` — and carries no note at all, so it was silently treated as fully verified. The real
   signal is the `verifiedAt` timestamp, which every asset has; the note is an optional human comment.
   In production this fails in the dangerous direction: a manager approves against an asset nobody has
@@ -266,7 +266,7 @@ partial success must not double-create."*
   rather than being the trigger.
 - **What check proved the correction:** Two tests in `tests/domain/exclusiveAsset.test.ts` — one
   asserting `asset-door-b` is `confirmation_required` while the freshly verified `asset-door-a` is
-  `available`, and one asserting `asset-ev-screen-02` is `confirmation_required` *and* has no note,
+  `available`, and one asserting `asset-ev-screen-02` is `confirmation_required` _and_ has no note,
   which fails against the old implementation. The management dashboard now returns two stale-asset
   warnings where it previously returned one.
 

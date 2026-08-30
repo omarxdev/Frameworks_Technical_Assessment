@@ -3,20 +3,15 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { CircleCheckBig, Send } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
 import { Callout } from "@/components/ui/states";
 import {
@@ -24,7 +19,7 @@ import {
   useBookingRequest,
 } from "@/features/portal/hooks/use-portal-data";
 import { FIXTURE_TODAY } from "@/features/portal/lib/catalogue-options";
-import { daysBetween, formatDateRange } from "@/features/portal/lib/format";
+import { daysBetween, formatDateRange } from "@/lib/format";
 
 const bookingFormSchema = z
   .object({
@@ -37,9 +32,7 @@ const bookingFormSchema = z
         (value) => Number.isFinite(Number(value)) && Number(value) >= 0,
         "Budget must be a number of £0 or more"
       ),
-    objective: z
-      .string()
-      .min(5, "Describe your objective in at least 5 characters"),
+    objective: z.string().min(5, "Describe your objective in at least 5 characters"),
     notes: z.string().optional(),
   })
   .refine((values) => values.startDate < values.endDate, {
@@ -72,7 +65,7 @@ export const BookingRequestForm = ({
     register,
     handleSubmit,
     setValue,
-    watch,
+    control,
     formState: { errors },
   } = useForm<BookingFormValues>({
     resolver: zodResolver(bookingFormSchema),
@@ -90,8 +83,8 @@ export const BookingRequestForm = ({
     setValue("endDate", endDate);
   }, [startDate, endDate, setValue]);
 
-  const watchedStart = watch("startDate");
-  const watchedEnd = watch("endDate");
+  const watchedStart = useWatch({ control, name: "startDate" });
+  const watchedEnd = useWatch({ control, name: "endDate" });
   const requestedDays = daysBetween(watchedStart, watchedEnd);
   const belowMinimumTerm = requestedDays > 0 && requestedDays < minimumTermDays;
 
@@ -121,9 +114,9 @@ export const BookingRequestForm = ({
     return (
       <Card className="border-info/30">
         <CardHeader>
-          <div className="flex items-center gap-2 text-info-foreground">
+          <div className="text-info-foreground flex items-center gap-2">
             <CircleCheckBig className="size-5" />
-            <CardTitle className="text-lg">
+            <CardTitle size="lg">
               Enquiry submitted — nothing is booked yet
             </CardTitle>
           </div>
@@ -134,9 +127,9 @@ export const BookingRequestForm = ({
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <Callout tone="warn" title="This is a non-binding request">
-            You have not booked or paid for anything. Inventory is not reserved
-            and prices stay indicative. Our team now reviews live availability
-            and will either issue a contract or come back with alternatives.
+            You have not booked or paid for anything. Inventory is not reserved and
+            prices stay indicative. Our team now reviews live availability and will
+            either issue a contract or come back with alternatives.
           </Callout>
 
           <dl className="grid gap-3 text-sm sm:grid-cols-2">
@@ -170,10 +163,10 @@ export const BookingRequestForm = ({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">Request this</CardTitle>
+        <CardTitle size="lg">Request this</CardTitle>
         <CardDescription>
-          Sends a non-binding enquiry to our team. Nothing is reserved and no
-          payment is taken.
+          Sends a non-binding enquiry to our team. Nothing is reserved and no payment is
+          taken.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -181,15 +174,20 @@ export const BookingRequestForm = ({
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="requestStartDate">Start date</Label>
-              <Input
-                id="requestStartDate"
-                type="date"
-                min={FIXTURE_TODAY}
-                aria-invalid={Boolean(errors.startDate)}
-                {...register("startDate")}
+              <Controller
+                control={control}
+                name="startDate"
+                render={({ field }) => (
+                  <DatePicker
+                    id="requestStartDate"
+                    min={FIXTURE_TODAY}
+                    value={field.value}
+                    onChange={field.onChange}
+                  />
+                )}
               />
               {errors.startDate && (
-                <p className="text-sm text-stop-foreground">
+                <p className="text-stop-foreground text-sm">
                   {errors.startDate.message}
                 </p>
               )}
@@ -197,17 +195,20 @@ export const BookingRequestForm = ({
 
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="requestEndDate">End date</Label>
-              <Input
-                id="requestEndDate"
-                type="date"
-                min={watchedStart || FIXTURE_TODAY}
-                aria-invalid={Boolean(errors.endDate)}
-                {...register("endDate")}
+              <Controller
+                control={control}
+                name="endDate"
+                render={({ field }) => (
+                  <DatePicker
+                    id="requestEndDate"
+                    min={watchedStart || FIXTURE_TODAY}
+                    value={field.value}
+                    onChange={field.onChange}
+                  />
+                )}
               />
               {errors.endDate && (
-                <p className="text-sm text-stop-foreground">
-                  {errors.endDate.message}
-                </p>
+                <p className="text-stop-foreground text-sm">{errors.endDate.message}</p>
               )}
             </div>
           </div>
@@ -225,9 +226,7 @@ export const BookingRequestForm = ({
               {...register("budget")}
             />
             {errors.budget && (
-              <p className="text-sm text-stop-foreground">
-                {errors.budget.message}
-              </p>
+              <p className="text-stop-foreground text-sm">{errors.budget.message}</p>
             )}
           </div>
 
@@ -240,9 +239,7 @@ export const BookingRequestForm = ({
               {...register("objective")}
             />
             {errors.objective && (
-              <p className="text-sm text-stop-foreground">
-                {errors.objective.message}
-              </p>
+              <p className="text-stop-foreground text-sm">{errors.objective.message}</p>
             )}
           </div>
 
@@ -257,16 +254,16 @@ export const BookingRequestForm = ({
           </div>
 
           {requestedAssetName && (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               Preferred asset: <span className="font-medium">{requestedAssetName}</span>
             </p>
           )}
 
           {belowMinimumTerm && (
             <Callout tone="warn" title="Below the minimum term">
-              This product has a {minimumTermDays} day minimum term and you have
-              asked for {requestedDays} days. You can still send the enquiry —
-              our team will confirm what is possible.
+              This product has a {minimumTermDays} day minimum term and you have asked
+              for {requestedDays} days. You can still send the enquiry — our team will
+              confirm what is possible.
             </Callout>
           )}
 
@@ -281,7 +278,7 @@ export const BookingRequestForm = ({
               <Send className="size-4" />
               {mutation.isPending ? "Submitting" : "Submit non-binding request"}
             </Button>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-muted-foreground text-xs">
               No payment, no reservation, no commitment.
             </span>
           </div>

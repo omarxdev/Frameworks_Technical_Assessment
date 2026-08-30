@@ -1,21 +1,45 @@
 "use client";
 
 import Link from "next/link";
+import { ManagementErrorState } from "@/features/management/components/management-states";
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/ui/status-pill";
-import { EmptyState, ErrorState, LoadingState } from "@/components/ui/states";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable, type DataColumn } from "@/components/shared/data-table";
+import type { WorkOrder } from "@/lib/schemas";
+import { EmptyState, LoadingState } from "@/components/ui/states";
 import { AttentionPanel } from "@/features/management/components/attention-panel";
 import { StatTiles } from "@/features/management/components/stat-tiles";
 import { useDashboard } from "@/features/management/hooks/use-management-data";
-import { formatDateTime } from "@/features/management/lib/format";
+import { formatMoment as formatDateTime } from "@/lib/format";
+import { PageTitle, SectionTitle } from "@/components/ui/typography";
+import { Card } from "@/components/ui/card";
+
+const upcomingColumns: DataColumn<WorkOrder>[] = [
+  {
+    header: "Work order",
+    role: "title",
+    cell: (workOrder) => (
+      <Link
+        href={`/management/work-orders/${workOrder.id}`}
+        className="underline-offset-4 hover:underline"
+      >
+        {workOrder.id}
+      </Link>
+    ),
+  },
+  {
+    header: "Status",
+    role: "badge",
+    cell: (workOrder) => <StatusPill status={workOrder.status} />,
+  },
+  { header: "Type", cell: (workOrder) => workOrder.type },
+  { header: "Location", cell: (workOrder) => workOrder.locationLabel },
+  {
+    header: "Scheduled",
+    nowrap: true,
+    cell: (workOrder) => formatDateTime(workOrder.scheduledStart),
+  },
+];
 
 export const DashboardView = () => {
   const { data, isPending, isError, error, refetch } = useDashboard();
@@ -24,9 +48,10 @@ export const DashboardView = () => {
 
   if (isError) {
     return (
-      <ErrorState
+      <ManagementErrorState
+        error={error}
         title="The dashboard could not be loaded"
-        message={error instanceof Error ? error.message : undefined}
+        fallback="The management dashboard could not be loaded."
         onRetry={() => refetch()}
       />
     );
@@ -41,10 +66,10 @@ export const DashboardView = () => {
       <section className="flex flex-col gap-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="font-heading text-2xl font-semibold tracking-tight">
+            <PageTitle>
               Needs attention
-            </h1>
-            <p className="text-sm text-muted-foreground">
+            </PageTitle>
+            <p className="text-muted-foreground text-sm">
               Sorted by priority. Work through urgent items before anything else.
             </p>
           </div>
@@ -56,24 +81,24 @@ export const DashboardView = () => {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="font-heading text-lg font-semibold tracking-tight">
+        <SectionTitle>
           Pipeline at a glance
-        </h2>
+        </SectionTitle>
         <StatTiles counts={data.counts} />
       </section>
 
       <section className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-heading text-lg font-semibold tracking-tight">
+          <SectionTitle>
             Upcoming work orders
-          </h2>
+          </SectionTitle>
           <Button asChild size="sm" variant="outline">
             <Link href="/management/work-orders">Open work orders</Link>
           </Button>
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-border bg-card">
-          {upcoming.length === 0 ? (
+        {upcoming.length === 0 ? (
+          <Card>
             <EmptyState
               title="No work orders scheduled"
               message="Create a work order once a contract has been accepted."
@@ -83,35 +108,14 @@ export const DashboardView = () => {
                 </Button>
               }
             />
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Work order</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Scheduled</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {upcoming.map((workOrder) => (
-                  <TableRow key={workOrder.id}>
-                    <TableCell className="font-medium">{workOrder.id}</TableCell>
-                    <TableCell>{workOrder.type}</TableCell>
-                    <TableCell>{workOrder.locationLabel}</TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {formatDateTime(workOrder.scheduledStart)}
-                    </TableCell>
-                    <TableCell>
-                      <StatusPill status={workOrder.status} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </div>
+          </Card>
+        ) : (
+          <DataTable
+            rows={upcoming}
+            rowKey={(workOrder) => workOrder.id}
+            columns={upcomingColumns}
+          />
+        )}
       </section>
     </div>
   );

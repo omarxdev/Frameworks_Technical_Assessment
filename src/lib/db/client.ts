@@ -7,8 +7,7 @@ declare global {
 
 export const DB_NAME = process.env.MONGODB_DB || "island-media";
 
-const uri = () =>
-  process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/island-media";
+const uri = () => process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/island-media";
 
 const startMemoryServer = async () => {
   const { MongoMemoryServer } = await import("mongodb-memory-server");

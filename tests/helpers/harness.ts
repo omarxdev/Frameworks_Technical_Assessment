@@ -56,6 +56,21 @@ export const serviceEventsFor = async (contractId: string) => {
   return events.find({ contractId }).toArray();
 };
 
+export const clientRequestsFor = async (contractId: string) => {
+  const requests = await collections.clientRequests();
+  return requests.find({ contractId }).toArray();
+};
+
+export const getCampaign = async (contractId: string) => {
+  const campaigns = await collections.campaigns();
+  return campaigns.findOne({ contractId });
+};
+
+export const bookingsByIds = async (ids: string[]) => {
+  const bookings = await collections.bookings();
+  return bookings.find({ id: { $in: ids } }).toArray();
+};
+
 export const proofsFor = async (workOrderId: string) => {
   const proofs = await collections.proofRecords();
   return proofs.find({ workOrderId }).toArray();

@@ -13,7 +13,7 @@ export const LoadingState = ({
     role="status"
     aria-live="polite"
     className={cn(
-      "flex items-center justify-center gap-2.5 px-5 py-12 text-sm text-muted-foreground",
+      "text-muted-foreground flex items-center justify-center gap-2.5 px-5 py-12 text-sm",
       className
     )}
   >
@@ -34,15 +34,10 @@ export const EmptyState = ({
   className?: string;
 }) => (
   <div
-    className={cn(
-      "flex flex-col items-center gap-3 px-5 py-12 text-center",
-      className
-    )}
+    className={cn("flex flex-col items-center gap-3 px-5 py-12 text-center", className)}
   >
     <p className="text-sm font-medium">{title}</p>
-    {message && (
-      <p className="max-w-sm text-sm text-muted-foreground">{message}</p>
-    )}
+    {message && <p className="text-muted-foreground max-w-sm text-sm">{message}</p>}
     {action}
   </div>
 );
@@ -60,15 +55,10 @@ export const ErrorState = ({
 }) => (
   <div
     role="alert"
-    className={cn(
-      "flex flex-col items-center gap-3 px-5 py-12 text-center",
-      className
-    )}
+    className={cn("flex flex-col items-center gap-3 px-5 py-12 text-center", className)}
   >
-    <p className="text-sm font-medium text-stop-foreground">{title}</p>
-    {message && (
-      <p className="max-w-sm text-sm text-muted-foreground">{message}</p>
-    )}
+    <p className="text-stop-foreground text-sm font-medium">{title}</p>
+    {message && <p className="text-muted-foreground max-w-sm text-sm">{message}</p>}
     {onRetry && (
       <Button variant="outline" size="sm" onClick={onRetry}>
         Try again
@@ -78,27 +68,48 @@ export const ErrorState = ({
 );
 
 const calloutTones = {
-  info: "border-info/25 bg-info-surface text-info-foreground",
-  warn: "border-warn/25 bg-warn-surface text-warn-foreground",
-  stop: "border-stop/25 bg-stop-surface text-stop-foreground",
-  ok: "border-ok/25 bg-ok-surface text-ok-foreground",
+  info: "border-info/25 text-info-foreground",
+  warn: "border-warn/25 text-warn-foreground",
+  stop: "border-stop/25 text-stop-foreground",
+  ok: "border-ok/25 text-ok-foreground",
 };
+
+const calloutSurfaces = {
+  info: { solid: "bg-info-surface", subtle: "bg-info-surface/40" },
+  warn: { solid: "bg-warn-surface", subtle: "bg-warn-surface/40" },
+  stop: { solid: "bg-stop-surface", subtle: "bg-stop-surface/40" },
+  ok: { solid: "bg-ok-surface", subtle: "bg-ok-surface/40" },
+};
+
+const calloutSizes = {
+  sm: "rounded-lg px-3 py-2",
+  default: "rounded-lg px-4 py-3",
+  lg: "rounded-xl p-4",
+};
+
+export type CalloutTone = keyof typeof calloutTones;
 
 export const Callout = ({
   tone = "info",
+  size = "default",
+  subtle = false,
   title,
   children,
   className,
 }: {
-  tone?: keyof typeof calloutTones;
+  tone?: CalloutTone;
+  size?: keyof typeof calloutSizes;
+  subtle?: boolean;
   title?: string;
   children?: React.ReactNode;
   className?: string;
 }) => (
   <div
     className={cn(
-      "rounded-lg border px-4 py-3 text-sm",
+      "border text-sm",
+      calloutSizes[size],
       calloutTones[tone],
+      calloutSurfaces[tone][subtle ? "subtle" : "solid"],
       className
     )}
   >

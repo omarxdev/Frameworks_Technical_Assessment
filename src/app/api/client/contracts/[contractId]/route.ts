@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireClientOrganisation } from "@/lib/auth/session";
 import { collections } from "@/lib/db/collections";
 
-export async function GET(
+export const GET = async (
   req: NextRequest,
   { params }: { params: Promise<{ contractId: string }> }
-) {
+) => {
   try {
     const guard = await requireClientOrganisation(req);
     if (!guard.ok) return guard.response;
@@ -23,8 +23,6 @@ export async function GET(
       );
     }
 
-    // MULTI-TENANT ISOLATION CHECK:
-    // Client organisation A cannot view organisation B's contract
     if (contract.organisationId !== auth.organisation.id) {
       return NextResponse.json(
         { code: "FORBIDDEN", message: "You cannot access this organisation's record." },
@@ -32,18 +30,15 @@ export async function GET(
       );
     }
 
-    // Fetch connected campaign
     const campaignsCol = await collections.campaigns();
     const campaignDoc = await campaignsCol.findOne({ contractId });
 
-    // Fetch clientVisible service events
     const serviceEventsCol = await collections.serviceEvents();
     const serviceEvents = await serviceEventsCol
       .find({ contractId, clientVisible: true })
       .sort({ at: 1 })
       .toArray();
 
-    // Fetch proof records
     const proofRecordsCol = await collections.proofRecords();
     const workOrdersCol = await collections.workOrders();
     const relatedWorkOrders = await workOrdersCol.find({ contractId }).toArray();
@@ -53,7 +48,6 @@ export async function GET(
       .find({ workOrderId: { $in: workOrderIds } })
       .toArray();
 
-    // Fetch client requests
     const clientRequestsCol = await collections.clientRequests();
     const clientRequests = await clientRequestsCol.find({ contractId }).toArray();
 
@@ -68,8 +62,11 @@ export async function GET(
     });
   } catch (error: any) {
     return NextResponse.json(
-      { code: "CONTRACT_FETCH_FAILED", message: error.message || "Failed to fetch contract" },
+      {
+        code: "CONTRACT_FETCH_FAILED",
+        message: error.message || "Failed to fetch contract",
+      },
       { status: 500 }
     );
   }
-}
+};

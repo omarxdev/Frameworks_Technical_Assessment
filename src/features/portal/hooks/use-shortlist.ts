@@ -1,17 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { useShortlistStore } from "@/stores/use-shortlist-store";
 
-export const useHydrated = () => {
-  const [hydrated, setHydrated] = useState(false);
+const subscribeToNothing = () => () => {};
 
-  useEffect(() => {
-    setHydrated(true);
-  }, []);
+const getHydratedSnapshot = () => true;
 
-  return hydrated;
-};
+const getServerSnapshot = () => false;
+
+export const useHydrated = () =>
+  useSyncExternalStore(subscribeToNothing, getHydratedSnapshot, getServerSnapshot);
 
 export const useShortlistCount = () => {
   const hydrated = useHydrated();

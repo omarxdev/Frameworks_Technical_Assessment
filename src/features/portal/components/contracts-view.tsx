@@ -2,86 +2,55 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState, LoadingState } from "@/components/ui/states";
 import { StatusPill } from "@/components/ui/status-pill";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable, type DataColumn } from "@/components/shared/data-table";
 import { PortalErrorState } from "@/features/portal/components/portal-states";
 import { useClientContracts } from "@/features/portal/hooks/use-portal-data";
-import { formatDateRange, formatMoney } from "@/features/portal/lib/format";
+import { formatDateRange, formatMoney } from "@/lib/format";
 import type { ContractSummary } from "@/lib/schemas";
+import { PageTitle } from "@/components/ui/typography";
+
+const contractColumns: DataColumn<ContractSummary>[] = [
+  {
+    header: "Contract",
+    role: "title",
+    cell: (contract) => contract.id,
+  },
+  {
+    header: "Status",
+    role: "badge",
+    cell: (contract) => <StatusPill status={contract.status} />,
+  },
+  {
+    header: "Period",
+    nowrap: true,
+    cell: (contract) => formatDateRange(contract.startDate, contract.endDate),
+  },
+  { header: "Total", cell: (contract) => formatMoney(contract.total) },
+  {
+    header: "Next step",
+    className: "text-muted-foreground",
+    cell: (contract) => contract.actionRequired ?? "No action needed",
+  },
+  {
+    header: "Detail",
+    role: "action",
+    align: "right",
+    cell: (contract) => (
+      <Button asChild size="sm" variant="outline">
+        <Link href={`/portal/contracts/${contract.id}`}>Open</Link>
+      </Button>
+    ),
+  },
+];
 
 const ContractRows = ({ contracts }: { contracts: ContractSummary[] }) => (
-  <>
-    <div className="hidden overflow-x-auto rounded-xl border border-border md:block">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Contract</TableHead>
-            <TableHead>Period</TableHead>
-            <TableHead>Total</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Next step</TableHead>
-            <TableHead className="text-right">Detail</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {contracts.map((contract) => (
-            <TableRow key={contract.id}>
-              <TableCell className="font-medium">{contract.id}</TableCell>
-              <TableCell className="whitespace-nowrap">
-                {formatDateRange(contract.startDate, contract.endDate)}
-              </TableCell>
-              <TableCell>{formatMoney(contract.total)}</TableCell>
-              <TableCell>
-                <StatusPill status={contract.status} />
-              </TableCell>
-              <TableCell className="text-muted-foreground">
-                {contract.actionRequired ?? "No action needed"}
-              </TableCell>
-              <TableCell className="text-right">
-                <Button asChild size="sm" variant="outline">
-                  <Link href={`/portal/contracts/${contract.id}`}>Open</Link>
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
-
-    <div className="flex flex-col gap-3 md:hidden">
-      {contracts.map((contract) => (
-        <Card key={contract.id}>
-          <CardHeader>
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <CardTitle className="text-base">{contract.id}</CardTitle>
-              <StatusPill status={contract.status} />
-            </div>
-            <CardDescription>
-              {formatDateRange(contract.startDate, contract.endDate)} ·{" "}
-              {formatMoney(contract.total)}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            <p className="text-sm text-muted-foreground">
-              {contract.actionRequired ?? "No action needed"}
-            </p>
-            <Button asChild size="sm" variant="outline" className="w-fit">
-              <Link href={`/portal/contracts/${contract.id}`}>Open</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  </>
+  <DataTable
+    rows={contracts}
+    rowKey={(contract) => contract.id}
+    columns={contractColumns}
+  />
 );
 
 export const ContractsView = () => {
@@ -91,12 +60,12 @@ export const ContractsView = () => {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <h1 className="font-heading text-2xl font-semibold tracking-tight sm:text-3xl">
+        <PageTitle>
           Contracts
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Every contract we have issued to your organisation, with its current
-          status and what happens next.
+        </PageTitle>
+        <p className="text-muted-foreground text-sm">
+          Every contract we have issued to your organisation, with its current status
+          and what happens next.
         </p>
       </div>
 

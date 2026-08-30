@@ -8,7 +8,7 @@ import {
   validateIdempotencyKey,
   withIdempotency,
 } from "@/lib/domain/idempotency";
-import { isValidDateRange } from "@/lib/domain/availability/dateRange";
+import { isValidDateRange } from "@/lib/domain/availability/date-range";
 import { FIXTURE_CLOCK } from "@/lib/constants";
 import { newRequestId } from "@/lib/ids";
 

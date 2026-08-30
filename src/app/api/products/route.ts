@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { collections } from "@/lib/db/collections";
 import { ProductSearchQuerySchema } from "@/lib/schemas";
-import { evaluateExclusiveAssetAvailability } from "@/lib/domain/availability/exclusiveAsset";
-import { evaluateCapacityPoolAvailability } from "@/lib/domain/availability/capacityPool";
-import { isValidDateRange } from "@/lib/domain/availability/dateRange";
-import { FIXTURE_CLOCK_DATE } from "@/lib/constants";
+import { describeAvailability, loadInventory } from "@/lib/domain/availability/recheck";
+import { isValidDateRange } from "@/lib/domain/availability/date-range";
 
-export async function GET(req: NextRequest) {
+export const GET = async (req: NextRequest) => {
   try {
     const { searchParams } = new URL(req.url);
     const startDate = searchParams.get("startDate");
@@ -19,7 +17,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(
         {
           code: "VALIDATION_ERROR",
-          message: "Both startDate and endDate query parameters are required (format YYYY-MM-DD)",
+          message:
+            "Both startDate and endDate query parameters are required (format YYYY-MM-DD)",
         },
         { status: 422 }
       );
@@ -35,7 +34,9 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const maxMonthlyBudget = maxMonthlyBudgetStr ? parseFloat(maxMonthlyBudgetStr) : undefined;
+    const maxMonthlyBudget = maxMonthlyBudgetStr
+      ? parseFloat(maxMonthlyBudgetStr)
+      : undefined;
 
     const queryParse = ProductSearchQuerySchema.safeParse({
       startDate,
@@ -56,43 +57,27 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const [
-      productsDocs,
-      mediaOwnersDocs,
-      locationsDocs,
-      assetsDocs,
-      capacityPoolsDocs,
-      bookingsDocs,
-      holdsDocs,
-      outagesDocs,
-    ] = await Promise.all([
-      (await collections.products()).find({}).toArray(),
+    const [inventory, mediaOwnersDocs, locationsDocs] = await Promise.all([
+      loadInventory(),
       (await collections.mediaOwners()).find({}).toArray(),
       (await collections.locations()).find({}).toArray(),
-      (await collections.assets()).find({}).toArray(),
-      (await collections.capacityPools()).find({}).toArray(),
-      (await collections.bookings()).find({}).toArray(),
-      (await collections.holds()).find({}).toArray(),
-      (await collections.outages()).find({}).toArray(),
     ]);
 
     const mediaOwnersMap = new Map(mediaOwnersDocs.map((mo) => [mo.id, mo.name]));
     const locationsMap = new Map(locationsDocs.map((loc) => [loc.id, loc.name]));
 
-    let filteredProducts = productsDocs;
+    let filteredProducts = inventory.products;
 
-    // Filter by mediaType if specified
     if (mediaType) {
       filteredProducts = filteredProducts.filter((p) => p.mediaType === mediaType);
     }
 
-    // Filter by locationId if specified
     if (locationId) {
-      filteredProducts = filteredProducts.filter((p) => p.locationIds.includes(locationId));
+      filteredProducts = filteredProducts.filter((p) =>
+        p.locationIds.includes(locationId)
+      );
     }
 
-    // Filter by maxMonthlyBudget if specified
-    // Rule: Null price ("Price on request") or products without monthlyEquivalent must NOT silently pass
     if (maxMonthlyBudget !== undefined && !isNaN(maxMonthlyBudget)) {
       filteredProducts = filteredProducts.filter((p) => {
         const monthly = p.indicativeRate?.monthlyEquivalent;
@@ -102,45 +87,23 @@ export async function GET(req: NextRequest) {
     }
 
     const items = filteredProducts.map((product) => {
-      const mediaOwnerName = mediaOwnersMap.get(product.mediaOwnerId) || "Island Media Co";
-      const locationNames = product.locationIds.map((id) => locationsMap.get(id) || id);
-
-      let availabilitySummary;
-      if (product.allocationModel === "exclusive_asset") {
-        const result = evaluateExclusiveAssetAvailability({
-          productId: product.id,
-          startDate,
-          endDate,
-          assets: assetsDocs,
-          bookings: bookingsDocs,
-          holds: holdsDocs,
-          outages: outagesDocs,
-          clock: FIXTURE_CLOCK_DATE,
-        });
-        availabilitySummary = result.summary;
-      } else {
-        const result = evaluateCapacityPoolAvailability({
-          productId: product.id,
-          startDate,
-          endDate,
-          pools: capacityPoolsDocs,
-          bookings: bookingsDocs,
-          holds: holdsDocs,
-          clock: FIXTURE_CLOCK_DATE,
-        });
-        availabilitySummary = result.summary;
-      }
+      const { summary } = describeAvailability({
+        inventory,
+        productId: product.id,
+        startDate,
+        endDate,
+      });
 
       return {
         id: product.id,
         name: product.name,
-        mediaOwnerName,
+        mediaOwnerName: mediaOwnersMap.get(product.mediaOwnerId) || "Island Media Co",
         mediaType: product.mediaType,
-        locationNames,
+        locationNames: product.locationIds.map((id) => locationsMap.get(id) || id),
         allocationModel: product.allocationModel,
         indicativeRate: product.indicativeRate,
         minimumTermDays: product.minimumTermDays,
-        availability: availabilitySummary,
+        availability: summary,
       };
     });
 
@@ -160,4 +123,4 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+};

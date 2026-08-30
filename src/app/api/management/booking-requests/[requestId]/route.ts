@@ -2,15 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth/session";
 import { collections } from "@/lib/db/collections";
 import { ManagementDecisionSchema } from "@/lib/schemas";
-import { evaluateExclusiveAssetAvailability } from "@/lib/domain/availability/exclusiveAsset";
-import { evaluateCapacityPoolAvailability } from "@/lib/domain/availability/capacityPool";
-import { checkAvailability, loadInventory } from "@/lib/domain/availability/recheck";
-import { FIXTURE_CLOCK, FIXTURE_CLOCK_DATE } from "@/lib/constants";
+import {
+  checkAvailability,
+  describeAvailability,
+  loadInventory,
+} from "@/lib/domain/availability/recheck";
+import { FIXTURE_CLOCK } from "@/lib/constants";
 
-export async function GET(
+export const GET = async (
   req: NextRequest,
   { params }: { params: Promise<{ requestId: string }> }
-) {
+) => {
   try {
     const guard = await requireRole(req, ["manager"]);
     if (!guard.ok) return guard.response;
@@ -26,29 +28,14 @@ export async function GET(
       );
     }
 
-    const [
-      productsDocs,
-      orgsDocs,
-      mediaOwnersDocs,
-      locationsDocs,
-      assetsDocs,
-      capacityPoolsDocs,
-      bookingsDocs,
-      holdsDocs,
-      outagesDocs,
-    ] = await Promise.all([
-      (await collections.products()).find({}).toArray(),
+    const [inventory, orgsDocs, mediaOwnersDocs, locationsDocs] = await Promise.all([
+      loadInventory(),
       (await collections.organisations()).find({}).toArray(),
       (await collections.mediaOwners()).find({}).toArray(),
       (await collections.locations()).find({}).toArray(),
-      (await collections.assets()).find({}).toArray(),
-      (await collections.capacityPools()).find({}).toArray(),
-      (await collections.bookings()).find({}).toArray(),
-      (await collections.holds()).find({}).toArray(),
-      (await collections.outages()).find({}).toArray(),
     ]);
 
-    const product = productsDocs.find((p) => p.id === request.productId);
+    const product = inventory.products.find((p) => p.id === request.productId);
     const org = orgsDocs.find((o) => o.id === request.organisationId);
 
     if (!product) {
@@ -61,31 +48,12 @@ export async function GET(
     const mediaOwnersMap = new Map(mediaOwnersDocs.map((mo) => [mo.id, mo.name]));
     const locationsMap = new Map(locationsDocs.map((loc) => [loc.id, loc.name]));
 
-    let availabilitySummary;
-    if (product.allocationModel === "exclusive_asset") {
-      const result = evaluateExclusiveAssetAvailability({
-        productId: product.id,
-        startDate: request.startDate,
-        endDate: request.endDate,
-        assets: assetsDocs,
-        bookings: bookingsDocs,
-        holds: holdsDocs,
-        outages: outagesDocs,
-        clock: FIXTURE_CLOCK_DATE,
-      });
-      availabilitySummary = result.summary;
-    } else {
-      const result = evaluateCapacityPoolAvailability({
-        productId: product.id,
-        startDate: request.startDate,
-        endDate: request.endDate,
-        pools: capacityPoolsDocs,
-        bookings: bookingsDocs,
-        holds: holdsDocs,
-        clock: FIXTURE_CLOCK_DATE,
-      });
-      availabilitySummary = result.summary;
-    }
+    const { summary: availabilitySummary } = describeAvailability({
+      inventory,
+      productId: product.id,
+      startDate: request.startDate,
+      endDate: request.endDate,
+    });
 
     const { _id, ...requestData } = request;
 
@@ -114,16 +82,19 @@ export async function GET(
     });
   } catch (error: any) {
     return NextResponse.json(
-      { code: "REQUEST_DETAIL_FAILED", message: error.message || "Failed to fetch request detail" },
+      {
+        code: "REQUEST_DETAIL_FAILED",
+        message: error.message || "Failed to fetch request detail",
+      },
       { status: 500 }
     );
   }
-}
+};
 
-export async function PATCH(
+export const PATCH = async (
   req: NextRequest,
   { params }: { params: Promise<{ requestId: string }> }
-) {
+) => {
   try {
     const guard = await requireRole(req, ["manager"]);
     if (!guard.ok) return guard.response;
@@ -145,14 +116,19 @@ export async function PATCH(
     const parseResult = ManagementDecisionSchema.safeParse(body);
     if (!parseResult.success) {
       return NextResponse.json(
-        { code: "VALIDATION_ERROR", message: "Invalid management decision", details: parseResult.error.flatten() },
+        {
+          code: "VALIDATION_ERROR",
+          message: "Invalid management decision",
+          details: parseResult.error.flatten(),
+        },
         { status: 422 }
       );
     }
 
     const { action, note, selectedAssetId } = parseResult.data;
 
-    let targetStatus: "submitted" | "information_required" | "approved" | "declined" = request.status;
+    let targetStatus: "submitted" | "information_required" | "approved" | "declined" =
+      request.status;
 
     if (action === "approve") {
       const inventory = await loadInventory();
@@ -212,8 +188,11 @@ export async function PATCH(
     return NextResponse.json(updatedRequestData, { status: 200 });
   } catch (error: any) {
     return NextResponse.json(
-      { code: "DECISION_FAILED", message: error.message || "Failed to record management decision" },
+      {
+        code: "DECISION_FAILED",
+        message: error.message || "Failed to record management decision",
+      },
       { status: 500 }
     );
   }
-}
+};

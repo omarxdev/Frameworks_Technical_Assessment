@@ -1,7 +1,13 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ApiRequestError, apiFetch, newIdempotencyKey } from "@/lib/api-client";
+import {
+  apiFetch,
+  asApiRequestError,
+  errorMessageFrom,
+  isAccessError,
+  newIdempotencyKey,
+} from "@/lib/api-client";
 import {
   filtersToSearchParams,
   isValidRange,
@@ -20,28 +26,18 @@ import type {
 
 export const portalKeys = {
   summary: ["portal", "summary"] as const,
-  products: (filters: CatalogueFilters) =>
-    ["portal", "products", filters] as const,
+  products: (filters: CatalogueFilters) => ["portal", "products", filters] as const,
   product: (productId: string, startDate: string, endDate: string) =>
     ["portal", "product", productId, startDate, endDate] as const,
   contracts: ["portal", "contracts"] as const,
-  contract: (contractId: string) =>
-    ["portal", "contract", contractId] as const,
+  contract: (contractId: string) => ["portal", "contract", contractId] as const,
 };
 
-export const errorMessage = (error: unknown, fallback: string) => {
-  if (error instanceof ApiRequestError) return error.message;
-  if (error instanceof Error && error.message) return error.message;
-  return fallback;
-};
+export const errorMessage = errorMessageFrom;
 
-export const errorCode = (error: unknown) =>
-  error instanceof ApiRequestError ? error.code : null;
+export const errorCode = (error: unknown) => asApiRequestError(error)?.code ?? null;
 
-export const isAuthError = (error: unknown) => {
-  if (!(error instanceof ApiRequestError)) return false;
-  return error.status === 401 || error.code === "UNAUTHENTICATED";
-};
+export const isAuthError = isAccessError;
 
 export const useClientSummary = () =>
   useQuery({
@@ -76,15 +72,13 @@ export const useProductDetail = (
 export const useClientContracts = () =>
   useQuery({
     queryKey: portalKeys.contracts,
-    queryFn: () =>
-      apiFetch<PortalContractListResponse>("/client/contracts"),
+    queryFn: () => apiFetch<PortalContractListResponse>("/client/contracts"),
   });
 
 export const useContractDetail = (contractId: string) =>
   useQuery({
     queryKey: portalKeys.contract(contractId),
-    queryFn: () =>
-      apiFetch<PortalContractDetail>(`/client/contracts/${contractId}`),
+    queryFn: () => apiFetch<PortalContractDetail>(`/client/contracts/${contractId}`),
   });
 
 export const useBookingRequest = () => {
@@ -108,13 +102,10 @@ export const useContractAction = (contractId: string) => {
 
   return useMutation({
     mutationFn: ({ action, note }: ContractActionInput) =>
-      apiFetch<PortalContractDetail>(
-        `/client/contracts/${contractId}/actions`,
-        {
-          method: "POST",
-          body: note?.trim() ? { action, note: note.trim() } : { action },
-        }
-      ),
+      apiFetch<PortalContractDetail>(`/client/contracts/${contractId}/actions`, {
+        method: "POST",
+        body: note?.trim() ? { action, note: note.trim() } : { action },
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: portalKeys.contract(contractId) });
       queryClient.invalidateQueries({ queryKey: portalKeys.contracts });

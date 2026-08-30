@@ -35,10 +35,7 @@ export const POST = async (
       );
     }
 
-    if (
-      guard.user.role === "fitter" &&
-      workOrder.assignedUserId !== guard.user.id
-    ) {
+    if (guard.user.role === "fitter" && workOrder.assignedUserId !== guard.user.id) {
       return forbidden("This work order is assigned to another engineer.");
     }
 

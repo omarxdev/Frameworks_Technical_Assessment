@@ -1,83 +1,106 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth/session";
 import { collections } from "@/lib/db/collections";
-import { isVerificationStale } from "@/lib/domain/availability/exclusiveAsset";
+import { isVerificationStale } from "@/lib/domain/availability/exclusive-asset";
+import { formatDay, formatMoment } from "@/lib/format";
+import type { AttentionItem } from "@/lib/schemas";
 
-export async function GET(req: NextRequest) {
+export const GET = async (req: NextRequest) => {
   try {
     const guard = await requireRole(req, ["manager"]);
     if (!guard.ok) return guard.response;
 
-    const [requestsDocs, contractsDocs, campaignsDocs, workOrdersDocs, clientRequestsDocs, assetsDocs] =
-      await Promise.all([
-        (await collections.bookingRequests()).find({}).toArray(),
-        (await collections.contracts()).find({}).toArray(),
-        (await collections.campaigns()).find({}).toArray(),
-        (await collections.workOrders()).find({}).toArray(),
-        (await collections.clientRequests()).find({}).toArray(),
-        (await collections.assets()).find({}).toArray(),
-      ]);
+    const [
+      requestsDocs,
+      contractsDocs,
+      campaignsDocs,
+      workOrdersDocs,
+      clientRequestsDocs,
+      assetsDocs,
+      productsDocs,
+      organisationsDocs,
+    ] = await Promise.all([
+      (await collections.bookingRequests()).find({}).toArray(),
+      (await collections.contracts()).find({}).toArray(),
+      (await collections.campaigns()).find({}).toArray(),
+      (await collections.workOrders()).find({}).toArray(),
+      (await collections.clientRequests()).find({}).toArray(),
+      (await collections.assets()).find({}).toArray(),
+      (await collections.products()).find({}).toArray(),
+      (await collections.organisations()).find({}).toArray(),
+    ]);
 
-    const attentionItems: any[] = [];
+    const productNames = new Map(productsDocs.map((p) => [p.id, p.name]));
+    const organisationNames = new Map(organisationsDocs.map((o) => [o.id, o.name]));
 
-    // 1. Pending booking requests
+    const attentionItems: AttentionItem[] = [];
+
     const submittedRequests = requestsDocs.filter((r) => r.status === "submitted");
-    for (const r of submittedRequests) {
+    for (const request of submittedRequests) {
+      const advertiser =
+        organisationNames.get(request.organisationId) ??
+        request.advertiser?.name ??
+        request.organisationId;
+
       attentionItems.push({
-        id: `att-req-${r.id}`,
+        id: `att-req-${request.id}`,
         type: "booking_request",
         priority: "high",
-        title: "New Booking Request",
-        message: `${r.advertiser?.name || r.organisationId} submitted a request for ${r.productId} (${r.startDate} to ${r.endDate})`,
-        link: `/management/requests/${r.id}`,
-        entityId: r.id,
+        title: "New booking request",
+        message: `${advertiser} asked for ${productNames.get(request.productId) ?? request.productId}, ${formatDay(request.startDate)} to ${formatDay(request.endDate)}.`,
+        link: `/management/requests/${request.id}`,
+        entityId: request.id,
       });
     }
 
-    // 2. Blocked work orders
     const blockedOrders = workOrdersDocs.filter((w) => w.status === "blocked");
-    for (const w of blockedOrders) {
-      const blockedEntry = [...w.history]
+    for (const workOrder of blockedOrders) {
+      const blockedEntry = [...workOrder.history]
         .reverse()
-        .find((h) => h.action === "blocked");
+        .find((entry) => entry.action === "blocked");
 
       attentionItems.push({
-        id: `att-wo-${w.id}`,
+        id: `att-wo-${workOrder.id}`,
         type: "work_order_blocked",
         priority: "urgent",
-        title: "Fitter work order blocked",
-        message: `${w.locationLabel}: ${blockedEntry?.note || "no reason recorded"}`,
-        link: `/management/work-orders/${w.id}`,
-        entityId: w.id,
+        title: "Fitter blocked on site",
+        message: `${workOrder.locationLabel}: ${blockedEntry?.note || "no reason recorded"}`,
+        link: `/management/work-orders/${workOrder.id}`,
+        entityId: workOrder.id,
       });
     }
 
-    // 3. Client change requests
-    const pendingChanges = clientRequestsDocs.filter((cr) => cr.status === "submitted");
-    for (const cr of pendingChanges) {
+    const pendingClientRequests = clientRequestsDocs.filter(
+      (cr) => cr.status === "submitted"
+    );
+    for (const clientRequest of pendingClientRequests) {
+      const isCancellation = clientRequest.type === "cancellation";
+      const advertiser =
+        organisationNames.get(clientRequest.organisationId) ??
+        clientRequest.organisationId;
+
       attentionItems.push({
-        id: `att-cr-${cr.id}`,
+        id: `att-cr-${clientRequest.id}`,
         type: "client_change_request",
-        priority: "high",
-        title: "Client Change Request",
-        message: `Contract ${cr.contractId}: "${cr.summary || "Change requested"}"`,
-        link: `/management/contracts/${cr.contractId}`,
-        entityId: cr.id,
+        priority: isCancellation ? "urgent" : "high",
+        title: isCancellation ? "Client asked to cancel" : "Client asked for a change",
+        message: `${advertiser}: ${clientRequest.summary || "No detail supplied"}`,
+        link: `/management/contracts/${clientRequest.contractId}`,
+        entityId: clientRequest.id,
       });
     }
 
-    // 4. Stale verification warnings
     const staleAssets = assetsDocs.filter(
       (a) => a.status === "active" && isVerificationStale(a.verifiedAt)
     );
-    for (const sa of staleAssets) {
+    for (const asset of staleAssets) {
       attentionItems.push({
-        id: `att-asset-${sa.id}`,
+        id: `att-asset-${asset.id}`,
         type: "stale_verification",
         priority: "normal",
         title: "Asset verification is stale",
-        message: `${sa.name}: last verified ${sa.verifiedAt ?? "never"}.${sa.note ? ` ${sa.note}` : ""}`,
-        entityId: sa.id,
+        message: `${asset.name}: last verified ${asset.verifiedAt ? formatMoment(asset.verifiedAt) : "never"}.${asset.note ? ` ${asset.note}` : ""}`,
+        entityId: asset.id,
       });
     }
 
@@ -97,8 +120,11 @@ export async function GET(req: NextRequest) {
     });
   } catch (error: any) {
     return NextResponse.json(
-      { code: "DASHBOARD_ERROR", message: error.message || "Failed to load management dashboard" },
+      {
+        code: "DASHBOARD_ERROR",
+        message: error.message || "Failed to load management dashboard",
+      },
       { status: 500 }
     );
   }
-}
+};

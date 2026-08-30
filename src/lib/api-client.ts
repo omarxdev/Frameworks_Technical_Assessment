@@ -19,6 +19,27 @@ export class ApiRequestError extends Error {
   }
 }
 
+export const asApiRequestError = (error: unknown) =>
+  error instanceof ApiRequestError ? error : null;
+
+export const isAccessError = (error: unknown) => {
+  const apiError = asApiRequestError(error);
+  if (!apiError) return false;
+  return (
+    apiError.status === 401 ||
+    apiError.status === 403 ||
+    apiError.code === "UNAUTHENTICATED" ||
+    apiError.code === "FORBIDDEN"
+  );
+};
+
+export const errorMessageFrom = (error: unknown, fallback: string) => {
+  const apiError = asApiRequestError(error);
+  if (apiError) return apiError.message;
+  if (error instanceof Error && error.message) return error.message;
+  return fallback;
+};
+
 export const newIdempotencyKey = () =>
   globalThis.crypto?.randomUUID?.() ?? `key-${Date.now()}-${Math.random()}`;
 

@@ -10,10 +10,10 @@ export const VALID_CONTRACT_TRANSITIONS: Record<ContractStatus, ContractStatus[]
   cancelled: [],
 };
 
-export function canTransitionContract(
+export const canTransitionContract = (
   from: ContractStatus,
   to: ContractStatus
-): boolean {
+): boolean => {
   const allowed = VALID_CONTRACT_TRANSITIONS[from];
   return allowed.includes(to);
-}
+};

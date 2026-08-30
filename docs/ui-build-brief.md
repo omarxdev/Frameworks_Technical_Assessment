@@ -29,12 +29,12 @@ Semantic shadcn tokens: `bg-background`, `text-foreground`, `bg-card`, `text-mut
 
 Status tokens added for this project (light + dark already defined):
 
-| Token | Use |
-|---|---|
-| `bg-ok-surface text-ok-foreground` / `text-ok` | success, available, completed |
+| Token                                                | Use                                    |
+| ---------------------------------------------------- | -------------------------------------- |
+| `bg-ok-surface text-ok-foreground` / `text-ok`       | success, available, completed          |
 | `bg-warn-surface text-warn-foreground` / `text-warn` | needs attention, confirmation required |
-| `bg-stop-surface text-stop-foreground` / `text-stop` | blocked, unavailable, declined |
-| `bg-info-surface text-info-foreground` / `text-info` | in progress, issued, submitted |
+| `bg-stop-surface text-stop-foreground` / `text-stop` | blocked, unavailable, declined         |
+| `bg-info-surface text-info-foreground` / `text-info` | in progress, issued, submitted         |
 
 **Never write `bg-blue-500`, `text-red-600`, etc.** Everything must theme correctly in dark mode.
 
@@ -61,26 +61,26 @@ Codes you must handle in the UI: `INVENTORY_CONFLICT` (409), `IDEMPOTENCY_KEY_RE
 `INVALID_TRANSITION` (409), `VALIDATION_ERROR` (422), `PROOF_REQUIRED` (422), `REASON_REQUIRED` (422),
 `FORBIDDEN` (403), `PROOF_STORAGE_UNAVAILABLE` (503).
 
-| Method | Path | Notes |
-|---|---|---|
-| GET | `/products?startDate&endDate&mediaType&locationId&maxMonthlyBudget` | dates REQUIRED |
-| GET | `/products/{id}?startDate&endDate` | includes `assetOptions[]` with per-asset `availability.blockers[]` |
-| POST | `/booking-requests` | **needs `idempotencyKey`** |
-| GET | `/client/summary` | portal home |
-| GET | `/client/contracts` | org-scoped list |
-| GET | `/client/contracts/{id}` | + campaign, serviceEvents, proofRecords, clientRequests |
-| POST | `/client/contracts/{id}/actions` | `{ action: "accept" \| "request_changes" \| "request_cancellation", note }` |
-| GET | `/management/dashboard` | `{ attentionItems[], counts{}, upcomingWorkOrders[] }` |
-| GET | `/management/booking-requests?status=` | |
-| GET/PATCH | `/management/booking-requests/{id}` | PATCH `{ action: "approve" \| "decline" \| "request_information", note, selectedAssetId }` |
-| POST | `/management/contracts` | **needs `idempotencyKey`** |
-| POST | `/management/contracts/{id}/issue` | |
-| POST | `/management/work-orders` | **needs `idempotencyKey`** |
-| GET | `/mobile/work-orders?status=` | fitter sees only their own |
-| GET | `/mobile/work-orders/{id}` | |
-| POST | `/mobile/work-orders/{id}/status` | **needs `idempotencyKey`**, `{ status, note }` |
-| POST | `/mobile/work-orders/{id}/proof` | **needs `idempotencyKey`**, FormData `file` + `completionNote` |
-| GET | `/session/current`, POST `/session/switch` | |
+| Method    | Path                                                                | Notes                                                                                      |
+| --------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| GET       | `/products?startDate&endDate&mediaType&locationId&maxMonthlyBudget` | dates REQUIRED                                                                             |
+| GET       | `/products/{id}?startDate&endDate`                                  | includes `assetOptions[]` with per-asset `availability.blockers[]`                         |
+| POST      | `/booking-requests`                                                 | **needs `idempotencyKey`**                                                                 |
+| GET       | `/client/summary`                                                   | portal home                                                                                |
+| GET       | `/client/contracts`                                                 | org-scoped list                                                                            |
+| GET       | `/client/contracts/{id}`                                            | + campaign, serviceEvents, proofRecords, clientRequests                                    |
+| POST      | `/client/contracts/{id}/actions`                                    | `{ action: "accept" \| "request_changes" \| "request_cancellation", note }`                |
+| GET       | `/management/dashboard`                                             | `{ attentionItems[], counts{}, upcomingWorkOrders[] }`                                     |
+| GET       | `/management/booking-requests?status=`                              |                                                                                            |
+| GET/PATCH | `/management/booking-requests/{id}`                                 | PATCH `{ action: "approve" \| "decline" \| "request_information", note, selectedAssetId }` |
+| POST      | `/management/contracts`                                             | **needs `idempotencyKey`**                                                                 |
+| POST      | `/management/contracts/{id}/issue`                                  |                                                                                            |
+| POST      | `/management/work-orders`                                           | **needs `idempotencyKey`**                                                                 |
+| GET       | `/mobile/work-orders?status=`                                       | fitter sees only their own                                                                 |
+| GET       | `/mobile/work-orders/{id}`                                          |                                                                                            |
+| POST      | `/mobile/work-orders/{id}/status`                                   | **needs `idempotencyKey`**, `{ status, note }`                                             |
+| POST      | `/mobile/work-orders/{id}/proof`                                    | **needs `idempotencyKey`**, FormData `file` + `completionNote`                             |
+| GET       | `/session/current`, POST `/session/switch`                          |                                                                                            |
 
 ## Domain rules the UI must respect
 

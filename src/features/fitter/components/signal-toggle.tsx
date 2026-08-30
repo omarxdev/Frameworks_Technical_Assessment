@@ -17,13 +17,14 @@ export const SignalToggle = ({ className }: { className?: string }) => {
     <Button
       type="button"
       variant="outline"
+      size="touch"
       role="switch"
       aria-checked={simulatePoorSignal}
       onClick={handleToggle}
       className={cn(
-        "h-11 w-full justify-between px-3 text-left",
+        "w-full justify-between text-left",
         simulatePoorSignal &&
-          "border-warn/30 bg-warn-surface text-warn-foreground hover:bg-warn-surface",
+          "border-warn/25 bg-warn-surface text-warn-foreground hover:bg-warn-surface",
         className
       )}
     >
@@ -39,7 +40,7 @@ export const SignalToggle = ({ className }: { className?: string }) => {
         className={cn(
           "rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset",
           simulatePoorSignal
-            ? "bg-warn-surface text-warn-foreground ring-warn/30"
+            ? "bg-warn-surface text-warn-foreground ring-warn/25"
             : "bg-muted text-muted-foreground ring-border"
         )}
       >

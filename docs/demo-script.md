@@ -60,7 +60,7 @@ This is the screen to spend time on. It is the piece I added beyond the brief:
 
 > "The brief says approval must fail when inventory is not free. It does. But 'unavailable' is not
 > a useful answer to give a manager who has a client on the phone. So the same availability engine
-> that returns the yes/no also returns *why* — every blocker, named, with its dates and what it is."
+> that returns the yes/no also returns _why_ — every blocker, named, with its dates and what it is."
 
 Three conflicts: two confirmed bookings and a maintenance outage, each with the window it blocks.
 
@@ -81,7 +81,7 @@ Switch to **Jordan Ellis / Lighthouse Learning**. Open **contract-001**, status 
 
 Show the line items and the version number. Accept it.
 
-> "Availability is rechecked *again* here, at activation — not just at approval. Between issuing a
+> "Availability is rechecked _again_ here, at activation — not just at approval. Between issuing a
 > contract and a client accepting it, days pass. That is the window where a double-booking gets in."
 
 The contract goes **Active** and the bookings become confirmed.
@@ -100,7 +100,7 @@ Jobs split into Today and Upcoming against the fixture clock. Open **Van 12 rear
 Walk the state machine, and let the UI make the point:
 
 - Only legal transitions are offered. From **Assigned** there is no "complete" button.
-- Completion is gated: *"Mark yourself on site before completing this job."*
+- Completion is gated: _"Mark yourself on site before completing this job."_
 - **Report blocked** demands a reason before it will submit. Show the refusal, then cancel out.
 - **Mark complete** demands a note and a photo.
 
@@ -127,7 +127,7 @@ timeline.
 > "That is the whole point of the exercise: one fitter's photo, taken on a phone in a depot, is
 > what the client sees as evidence their advert is live."
 
-Then state what the client does *not* see: internal notes on the work order, and any service event
+Then state what the client does _not_ see: internal notes on the work order, and any service event
 not marked client-visible. Both stripped at the route boundary, both asserted in a test.
 
 ---

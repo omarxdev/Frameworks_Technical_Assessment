@@ -4,15 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Callout, LoadingState } from "@/components/ui/states";
 import { StatusPill, humanise } from "@/components/ui/status-pill";
 import { AssetOptionList } from "@/features/portal/components/asset-options";
@@ -21,12 +15,9 @@ import { PortalErrorState } from "@/features/portal/components/portal-states";
 import { ShortlistButton } from "@/features/portal/components/shortlist-button";
 import { useProductDetail } from "@/features/portal/hooks/use-portal-data";
 import { FIXTURE_TODAY, isValidRange } from "@/features/portal/lib/catalogue-options";
-import {
-  formatDate,
-  formatDateRange,
-  humaniseKey,
-} from "@/features/portal/lib/format";
+import { formatDateRange, formatDay as formatDate, humaniseKey } from "@/lib/format";
 import type { PortalProductDetail } from "@/features/portal/lib/types";
+import { SubsectionLabel } from "@/components/ui/typography";
 
 const availabilityTone = {
   available: "ok",
@@ -34,14 +25,10 @@ const availabilityTone = {
   unavailable: "stop",
 } as const;
 
-const CreativeSpecList = ({
-  spec,
-}: {
-  spec: Record<string, unknown> | null;
-}) => {
+const CreativeSpecList = ({ spec }: { spec: Record<string, unknown> | null }) => {
   if (!spec || Object.keys(spec).length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
+      <p className="text-muted-foreground text-sm">
         Creative specification is issued with the contract for this product.
       </p>
     );
@@ -76,15 +63,13 @@ const ProductDetailContent = ({
   const isExclusive = product.allocationModel === "exclusive_asset";
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:items-start">
+    <div className="grid gap-6 lg:grid-cols-detail-aside lg:items-start">
       <div className="flex flex-col gap-6">
         <Card>
           <CardHeader>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="flex flex-col gap-1">
-                <CardTitle className="font-heading text-xl">
-                  {product.name}
-                </CardTitle>
+                <CardTitle size="lg">{product.name}</CardTitle>
                 <CardDescription>
                   {product.mediaOwnerName} · {humanise(product.mediaType)} ·{" "}
                   {humanise(product.allocationModel)}
@@ -94,13 +79,11 @@ const ProductDetailContent = ({
             </div>
           </CardHeader>
           <CardContent className="flex flex-col gap-5">
-            <p className="text-sm text-muted-foreground">
-              {product.description}
-            </p>
+            <p className="text-muted-foreground text-sm">{product.description}</p>
 
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="flex flex-col gap-0.5">
-                <span className="text-xs text-muted-foreground uppercase">
+                <span className="text-muted-foreground text-xs uppercase">
                   Indicative rate
                 </span>
                 <span className="font-heading text-lg font-semibold">
@@ -108,7 +91,7 @@ const ProductDetailContent = ({
                 </span>
               </div>
               <div className="flex flex-col gap-0.5">
-                <span className="text-xs text-muted-foreground uppercase">
+                <span className="text-muted-foreground text-xs uppercase">
                   Minimum term
                 </span>
                 <span className="font-heading text-lg font-semibold">
@@ -116,11 +99,11 @@ const ProductDetailContent = ({
                 </span>
               </div>
               <div className="flex flex-col gap-0.5">
-                <span className="text-xs text-muted-foreground uppercase">
+                <span className="text-muted-foreground text-xs uppercase">
                   Locations
                 </span>
                 <span className="flex items-center gap-1.5 text-sm">
-                  <MapPin className="size-3.5 shrink-0" />
+                  <MapPin className="size-4 shrink-0" />
                   {product.locationNames.join(", ")}
                 </span>
               </div>
@@ -141,7 +124,7 @@ const ProductDetailContent = ({
             </Callout>
 
             <div className="flex flex-col gap-2">
-              <h2 className="text-sm font-semibold">Creative specification</h2>
+              <SubsectionLabel as="h2">Creative specification</SubsectionLabel>
               <CreativeSpecList spec={product.creativeSpec} />
             </div>
           </CardContent>
@@ -150,17 +133,15 @@ const ProductDetailContent = ({
         {isExclusive && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">
-                Individual sites and vehicles
-              </CardTitle>
+              <CardTitle size="lg">Individual sites and vehicles</CardTitle>
               <CardDescription>
-                Each asset is checked against confirmed bookings, active holds
-                and outages for your exact dates.
+                Each asset is checked against confirmed bookings, active holds and
+                outages for your exact dates.
               </CardDescription>
             </CardHeader>
             <CardContent>
               {product.assetOptions.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-muted-foreground text-sm">
                   No active assets are configured for this product right now.
                 </p>
               ) : (
@@ -177,13 +158,12 @@ const ProductDetailContent = ({
         {!isExclusive && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Network capacity</CardTitle>
+              <CardTitle size="lg">Network capacity</CardTitle>
               <CardDescription>
-                This product is sold from a shared loop rather than a single
-                site.
+                This product is sold from a shared loop rather than a single site.
               </CardDescription>
             </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
+            <CardContent className="text-muted-foreground text-sm">
               {product.availability.availableCapacity ?? 0} of{" "}
               {product.availability.totalCapacity ?? 0} slots are free for{" "}
               {formatDateRange(startDate, endDate)}.
@@ -238,9 +218,7 @@ export const ProductDetailView = ({
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <Button asChild size="sm" variant="ghost">
-          <Link
-            href={`/portal/catalogue?startDate=${startDate}&endDate=${endDate}`}
-          >
+          <Link href={`/portal/catalogue?startDate=${startDate}&endDate=${endDate}`}>
             <ArrowLeft className="size-4" />
             Back to catalogue
           </Link>
@@ -249,24 +227,20 @@ export const ProductDetailView = ({
         <div className="flex flex-wrap items-end gap-3">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="detailStartDate">Start date</Label>
-            <Input
+            <DatePicker
               id="detailStartDate"
-              type="date"
               min={FIXTURE_TODAY}
               value={startDate}
-              onChange={(event) => setStartDate(event.target.value)}
-              className="w-40"
+              onChange={setStartDate}
             />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="detailEndDate">End date</Label>
-            <Input
+            <DatePicker
               id="detailEndDate"
-              type="date"
               min={startDate || FIXTURE_TODAY}
               value={endDate}
-              onChange={(event) => setEndDate(event.target.value)}
-              className="w-40"
+              onChange={setEndDate}
             />
           </div>
         </div>
@@ -274,14 +248,12 @@ export const ProductDetailView = ({
 
       {!rangeValid && (
         <Callout tone="stop" title="Check your dates">
-          The start date must be strictly before the end date before we can
-          calculate availability.
+          The start date must be strictly before the end date before we can calculate
+          availability.
         </Callout>
       )}
 
-      {rangeValid && isPending && (
-        <LoadingState label="Calculating availability" />
-      )}
+      {rangeValid && isPending && <LoadingState label="Calculating availability" />}
 
       {rangeValid && isError && (
         <PortalErrorState
@@ -292,11 +264,7 @@ export const ProductDetailView = ({
       )}
 
       {rangeValid && data && (
-        <ProductDetailContent
-          product={data}
-          startDate={startDate}
-          endDate={endDate}
-        />
+        <ProductDetailContent product={data} startDate={startDate} endDate={endDate} />
       )}
     </div>
   );

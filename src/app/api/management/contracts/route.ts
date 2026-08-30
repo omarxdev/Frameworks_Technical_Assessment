@@ -8,7 +8,7 @@ import {
   validateIdempotencyKey,
   withIdempotency,
 } from "@/lib/domain/idempotency";
-import { isValidDateRange } from "@/lib/domain/availability/dateRange";
+import { isValidDateRange } from "@/lib/domain/availability/date-range";
 import { FIXTURE_CLOCK } from "@/lib/constants";
 import { newContractId } from "@/lib/ids";
 
@@ -80,6 +80,7 @@ export const POST = async (req: NextRequest) => {
       acceptedAt: null,
       activatedAt: null,
       items: data.items,
+      bookingIds: [],
       history: [
         {
           at: FIXTURE_CLOCK,

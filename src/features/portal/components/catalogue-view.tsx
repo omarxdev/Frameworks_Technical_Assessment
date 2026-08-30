@@ -15,9 +15,10 @@ import {
   DEFAULT_FILTERS,
   filtersToSearchParams,
 } from "@/features/portal/lib/catalogue-options";
-import { formatDateRange } from "@/features/portal/lib/format";
+import { formatDateRange } from "@/lib/format";
 import type { CatalogueFilters } from "@/features/portal/lib/types";
 import { useShortlistStore } from "@/stores/use-shortlist-store";
+import { PageTitle } from "@/components/ui/typography";
 
 const ShortlistStrip = () => {
   const hydrated = useHydrated();
@@ -28,7 +29,7 @@ const ShortlistStrip = () => {
   if (!hydrated || items.length === 0) return null;
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-border bg-muted/40 p-4">
+    <div className="border-border bg-muted/40 flex flex-col gap-3 rounded-xl border p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm font-medium">
           Shortlist ({items.length}) — saved on this device only
@@ -40,22 +41,23 @@ const ShortlistStrip = () => {
       <ul className="flex flex-wrap gap-2">
         {items.map((item) => (
           <li key={item.productId}>
-            <span className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs">
+            <span className="border-border bg-card flex items-center gap-2 rounded-full border px-3 py-1 text-xs">
               <Link
                 href={`/portal/catalogue/${item.productId}?startDate=${item.startDate}&endDate=${item.endDate}`}
-                className="font-medium hover:underline"
+                className="focus-visible:ring-ring rounded-sm font-medium outline-none hover:underline focus-visible:ring-2"
               >
                 {item.productName}
               </Link>
               <span className="text-muted-foreground">{item.rateLabel}</span>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon-xs"
                 aria-label={`Remove ${item.productName} from shortlist`}
                 onClick={() => remove(item.productId)}
-                className="text-muted-foreground hover:text-foreground"
               >
-                <X className="size-3" />
-              </button>
+                <X />
+              </Button>
             </span>
           </li>
         ))}
@@ -76,10 +78,9 @@ export const CatalogueView = ({
 
   const handleApply = (next: CatalogueFilters) => {
     setFilters(next);
-    router.replace(
-      `/portal/catalogue?${filtersToSearchParams(next).toString()}`,
-      { scroll: false }
-    );
+    router.replace(`/portal/catalogue?${filtersToSearchParams(next).toString()}`, {
+      scroll: false,
+    });
   };
 
   const items = data?.items ?? [];
@@ -87,10 +88,10 @@ export const CatalogueView = ({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <h1 className="font-heading text-2xl font-semibold tracking-tight sm:text-3xl">
+        <PageTitle>
           Catalogue
-        </h1>
-        <p className="text-sm text-muted-foreground">
+        </PageTitle>
+        <p className="text-muted-foreground text-sm">
           Availability for {formatDateRange(filters.startDate, filters.endDate)}.
           Everything here is indicative until we confirm it with the media owner.
         </p>
@@ -131,7 +132,7 @@ export const CatalogueView = ({
       )}
 
       {data && items.length > 0 && (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {items.map((product) => (
             <ProductCard key={product.id} product={product} filters={filters} />
           ))}

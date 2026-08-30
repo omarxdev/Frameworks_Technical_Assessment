@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Building2, HardHat, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Eyebrow, PageTitle } from "@/components/ui/typography";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const surfaces = [
@@ -30,15 +31,13 @@ const surfaces = [
 const Home = () => (
   <main className="mx-auto flex min-h-dvh max-w-4xl flex-col justify-center gap-10 px-6 py-16">
     <header className="flex flex-col gap-3">
-      <span className="text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">
-        Island Media Co
-      </span>
-      <h1 className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
+      <Eyebrow>Island Media Co</Eyebrow>
+      <PageTitle className="text-3xl sm:text-4xl">
         Connected advertising operations
-      </h1>
-      <p className="max-w-2xl text-muted-foreground">
-        One operating model behind three surfaces. Choose a surface to begin, or
-        switch role at any time from the header.
+      </PageTitle>
+      <p className="text-muted-foreground max-w-2xl">
+        One operating model behind three surfaces. Choose a surface to begin, or switch
+        role at any time from the header.
       </p>
     </header>
 
@@ -46,7 +45,7 @@ const Home = () => (
       {surfaces.map(({ href, icon: Icon, title, description }) => (
         <Card key={href} className="justify-between">
           <CardHeader>
-            <Icon className="size-5 text-primary" />
+            <Icon className="text-primary size-5" />
             <CardTitle>{title}</CardTitle>
             <CardDescription>{description}</CardDescription>
           </CardHeader>
@@ -59,7 +58,7 @@ const Home = () => (
       ))}
     </div>
 
-    <p className="text-xs text-muted-foreground">
+    <p className="text-muted-foreground text-xs">
       Prototype with fictional seeded data. Fixture clock is 15 January 2027.
     </p>
   </main>

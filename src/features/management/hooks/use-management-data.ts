@@ -7,6 +7,7 @@ import type {
   BookingRequestListResponse,
   ManagementContractDetail,
   ManagementDashboardResponse,
+  ManagementWorkOrderDetail,
   ProductDetailResponse,
   WorkOrderListResponse,
 } from "@/features/management/lib/types";
@@ -19,6 +20,8 @@ export const managementKeys = {
     ["management", "product", productId, startDate, endDate] as const,
   contract: (contractId: string) => ["management", "contract", contractId] as const,
   workOrders: (status: string) => ["management", "work-orders", status] as const,
+  workOrder: (workOrderId: string) =>
+    ["management", "work-order", workOrderId] as const,
 };
 
 export const useDashboard = () =>
@@ -78,4 +81,12 @@ export const useWorkOrders = (status: string) =>
           ? "/management/work-orders"
           : `/management/work-orders?status=${status}`
       ),
+  });
+
+export const useWorkOrder = (workOrderId: string) =>
+  useQuery({
+    queryKey: managementKeys.workOrder(workOrderId),
+    queryFn: () =>
+      apiFetch<ManagementWorkOrderDetail>(`/management/work-orders/${workOrderId}`),
+    enabled: Boolean(workOrderId),
   });

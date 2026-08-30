@@ -5,11 +5,13 @@ import { Separator } from "@/components/ui/separator";
 import { StatusPill } from "@/components/ui/status-pill";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { CompletionPanel } from "@/features/fitter/components/completion-panel";
-import { HistoryTimeline } from "@/features/fitter/components/history-timeline";
+import { Timeline, historyItems } from "@/components/shared/timeline";
 import { ProgressActions } from "@/features/fitter/components/progress-actions";
 import { SignalToggle } from "@/features/fitter/components/signal-toggle";
 import { useWorkOrder } from "@/features/fitter/hooks/use-work-orders";
-import { formatWindow } from "@/features/fitter/lib/format";
+import { formatJobWindow as formatWindow } from "@/lib/format";
+import { PageTitle, SubsectionLabel } from "@/components/ui/typography";
+import { Card, CardContent } from "@/components/ui/card";
 
 export const JobDetail = ({ workOrderId }: { workOrderId: string }) => {
   const { data, isPending, isError, error, refetch } = useWorkOrder(workOrderId);
@@ -34,25 +36,25 @@ export const JobDetail = ({ workOrderId }: { workOrderId: string }) => {
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-2">
         <StatusPill status={data.status} className="self-start" />
-        <h1 className="font-heading text-2xl font-semibold tracking-tight">
+        <PageTitle>
           {data.assetName}
-        </h1>
-        <p className="flex items-center gap-2 text-sm text-muted-foreground">
+        </PageTitle>
+        <p className="text-muted-foreground flex items-center gap-2 text-sm">
           <MapPin className="size-4 shrink-0" />
           {data.locationLabel}
         </p>
         <p className="flex items-center gap-2 text-sm font-medium">
-          <CalendarClock className="size-4 shrink-0 text-muted-foreground" />
+          <CalendarClock className="text-muted-foreground size-4 shrink-0" />
           {formatWindow(data.scheduledStart, data.scheduledEnd)}
         </p>
       </header>
 
       <section className="flex flex-col gap-2">
-        <h2 className="flex items-center gap-2 text-sm font-semibold tracking-wide uppercase">
+        <SubsectionLabel as="h2">
           <ClipboardList className="size-4" />
           Instructions
-        </h2>
-        <p className="rounded-xl border border-border bg-card px-4 py-3 text-sm leading-relaxed">
+        </SubsectionLabel>
+        <p className="bg-card ring-foreground/10 rounded-xl px-4 py-3 text-sm leading-relaxed ring-1">
           {data.instructions}
         </p>
       </section>
@@ -67,16 +69,25 @@ export const JobDetail = ({ workOrderId }: { workOrderId: string }) => {
 
       <Separator />
 
-      <HistoryTimeline history={data.history} />
+      <section className="flex flex-col gap-2.5">
+        <SubsectionLabel>History</SubsectionLabel>
+        <Timeline
+          items={historyItems(data.history)}
+          emptyTitle="Nothing recorded yet"
+          emptyMessage="Progress updates and completion notes appear here."
+        />
+      </section>
 
-      <div className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4">
-        <p className="text-sm font-semibold">Reviewer tools</p>
-        <p className="text-xs text-muted-foreground">
-          Sends x-simulate-upload-failure on the next proof upload so the queue
-          and retry path can be demonstrated.
-        </p>
-        <SignalToggle />
-      </div>
+      <Card>
+        <CardContent className="flex flex-col gap-2">
+          <p className="text-sm font-semibold">Reviewer tools</p>
+          <p className="text-muted-foreground text-xs">
+            Sends x-simulate-upload-failure on the next proof upload so the queue and
+            retry path can be demonstrated.
+          </p>
+          <SignalToggle />
+              </CardContent>
+      </Card>
     </div>
   );
 };

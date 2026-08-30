@@ -45,17 +45,21 @@ Auth is a **prototype only** — a role/account switcher for seeded manager, fit
 ## 4. Mandatory connected scenarios
 
 ### Scenario A — prospective client signs up and discovers services
+
 Visitor browses products → filters by dates/media type/location/max monthly budget → opens a product (price, minimum term, creative spec, calculated availability) → registers (client + organisation created, no contract needed) → session/account persists across reload → adds to shortlist → submits a non-binding booking request.
 **An account with zero contracts must have a useful portal home, not an empty/broken page.**
 
 ### Scenario B — management turns a request into a contract and campaign
+
 Manager sees new request in an attention-led dashboard → opens it (client, requested dates, product, current availability) → can request more info / decline / approve → **approval must re-check availability and handle a conflict safely** → for an approvable request, selects asset/pool allocation, creates a draft contract → issues it → client sees it in portal → client accepts or requests changes → acceptance creates/activates the connected campaign and booking state.
 (This is a prototype acceptance flow, not real e-signature.)
 
 ### Scenario C — management creates field work
+
 Manager creates an installation/fitting work order on the campaign (type, scheduled date, asset/location, instructions, assigned fitter) → appears in fitter's mobile app → manager can see latest field status.
 
 ### Scenario D — fitter completes work, client sees progress
+
 Fitter opens assigned job on mobile → moves through `assigned → travelling → on_site → blocked → completed` → **blocked requires a reason** → **completed requires a note + at least one proof attachment/placeholder** → update persists, creates a service-history event → management sees completed job + proof → client sees an updated service timeline + proof in their contract/campaign view.
 (Proof storage can be local/simulated — no real object storage required.)
 
@@ -80,6 +84,7 @@ Fitter opens assigned job on mobile → moves through `assigned → travelling �
 **Dates:** half-open intervals `[start, end)` — start inclusive, end exclusive. Overlap test: `max(startA,startB) < min(endA,endB)`. End must be after start. State the timezone assumption (recommend: treat all dates as UTC calendar dates, no local-TZ conversion, for prototype simplicity).
 
 **Products/assets/capacity — do not collapse these:**
+
 - **Product** = what's sold.
 - **Physical asset** = the named vehicle/door/screen/location delivering it.
 - **Capacity pool** = shared capacity (e.g. a digital loop).
@@ -111,16 +116,16 @@ Counts: 4 mediaOwners · 4 locations · 6 products · 12 assets · 1 capacityPoo
 
 These records are **intentionally rigged to break naive logic** — they are not mistakes, do not "clean them up":
 
-| Record(s) | What it tests |
-|---|---|
+| Record(s)                                                                                                                                                                     | What it tests                                                                                                                                                                                                                               |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `request-001` (Silverline, product-bus-rear, **12–18 Feb**) vs `booking-001` (Bus 101, Feb 1–Mar 1), `booking-002` (Bus 102, Feb 15–Apr 1), `outage-001` (Bus 103, Feb 10–20) | **All 3 exclusive assets are blocked for this exact date range.** This request currently has zero availability. If the manager UI lets this get approved without surfacing a conflict, that's the failure mode Scenario B explicitly tests. |
-| `pool-hub-screen` (capacity 4): `booking-006/007/008` (1 unit each) + `hold-001` (active, `expiresAt` 2027-01-20 > clock) during **20–28 Feb** | Sums to exactly 4/4 → fully booked in that window. |
-| `hold-002` — same product/dates as `hold-001`, but `expiresAt` 2027-01-10 < clock | **Expired hold, must be ignored** — direct test of hold-expiry logic. |
-| `product-ev-screen` — `amount: null` | "Price on request" rendering + must not silently pass the budget filter. |
-| `asset-door-b` — `verifiedAt` 2026-10-01, note "Owner confirmation recommended before approval" | Stale verification — surface asset trust/freshness in manager UI, not just binary available/unavailable. |
-| `org-silverline` — 0 contracts | Tests the "useful no-contract portal home" requirement. |
-| `org-oak-legal` — active contract, full service history, **and** a pending `client-request-001` (contract_change, status `submitted`) | Tests that a pending client request stays pending until management acts — must not auto-resolve. |
-| `contract-001` (Lighthouse) — status `issued`, not yet accepted | Tests the issue → client-sees-it → accept/change flow end to end. |
+| `pool-hub-screen` (capacity 4): `booking-006/007/008` (1 unit each) + `hold-001` (active, `expiresAt` 2027-01-20 > clock) during **20–28 Feb**                                | Sums to exactly 4/4 → fully booked in that window.                                                                                                                                                                                          |
+| `hold-002` — same product/dates as `hold-001`, but `expiresAt` 2027-01-10 < clock                                                                                             | **Expired hold, must be ignored** — direct test of hold-expiry logic.                                                                                                                                                                       |
+| `product-ev-screen` — `amount: null`                                                                                                                                          | "Price on request" rendering + must not silently pass the budget filter.                                                                                                                                                                    |
+| `asset-door-b` — `verifiedAt` 2026-10-01, note "Owner confirmation recommended before approval"                                                                               | Stale verification — surface asset trust/freshness in manager UI, not just binary available/unavailable.                                                                                                                                    |
+| `org-silverline` — 0 contracts                                                                                                                                                | Tests the "useful no-contract portal home" requirement.                                                                                                                                                                                     |
+| `org-oak-legal` — active contract, full service history, **and** a pending `client-request-001` (contract_change, status `submitted`)                                         | Tests that a pending client request stays pending until management acts — must not auto-resolve.                                                                                                                                            |
+| `contract-001` (Lighthouse) — status `issued`, not yet accepted                                                                                                               | Tests the issue → client-sees-it → accept/change flow end to end.                                                                                                                                                                           |
 
 ---
 
@@ -128,28 +133,28 @@ These records are **intentionally rigged to break naive logic** — they are not
 
 Base: `/api`. Protected routes use `X-Prototype-User-Id` header exactly as specced in the OpenAPI contract. The server **also** accepts a JWT cookie for browser-based navigation (see §10). Both resolve to the same user context server-side. This keeps the API curl/Postman-testable per the spec while giving the browser UI seamless sessions.
 
-| Method | Path | Purpose |
-|---|---|---|
-| POST | `/auth/register` | Create client user + org (idempotent) |
-| POST | `/session/switch` | Switch to a seeded prototype user |
-| GET | `/products` | Search catalogue by date/mediaType/location/budget |
-| GET | `/products/{id}` | Product detail + availability + asset options |
-| POST | `/booking-requests` | Submit non-binding request (idempotent) |
-| GET | `/client/summary` | Client portal home data |
-| GET | `/client/contracts` | Org-scoped contract list |
-| GET | `/client/contracts/{id}` | Contract + campaign + service events + proof (org-scoped) |
-| POST | `/client/contracts/{id}/actions` | accept / request_changes / request_cancellation |
-| GET | `/management/dashboard` | Attention counts + upcoming work |
-| GET | `/management/booking-requests` | List (filterable by status) |
+| Method    | Path                                | Purpose                                                                                              |
+| --------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| POST      | `/auth/register`                    | Create client user + org (idempotent)                                                                |
+| POST      | `/session/switch`                   | Switch to a seeded prototype user                                                                    |
+| GET       | `/products`                         | Search catalogue by date/mediaType/location/budget                                                   |
+| GET       | `/products/{id}`                    | Product detail + availability + asset options                                                        |
+| POST      | `/booking-requests`                 | Submit non-binding request (idempotent)                                                              |
+| GET       | `/client/summary`                   | Client portal home data                                                                              |
+| GET       | `/client/contracts`                 | Org-scoped contract list                                                                             |
+| GET       | `/client/contracts/{id}`            | Contract + campaign + service events + proof (org-scoped)                                            |
+| POST      | `/client/contracts/{id}/actions`    | accept / request_changes / request_cancellation                                                      |
+| GET       | `/management/dashboard`             | Attention counts + upcoming work                                                                     |
+| GET       | `/management/booking-requests`      | List (filterable by status)                                                                          |
 | GET/PATCH | `/management/booking-requests/{id}` | Detail / apply decision (request_information, approve, decline) — approve must re-check availability |
-| POST | `/management/contracts` | Create draft contract from approved request |
-| POST | `/management/contracts/{id}/issue` | Issue draft to client |
-| POST | `/management/work-orders` | Create + assign work order |
-| GET | `/mobile/work-orders` | List assigned to selected fitter |
-| GET | `/mobile/work-orders/{id}` | Mobile-safe detail |
-| POST | `/mobile/work-orders/{id}/status` | Progress/blocked update |
-| POST | `/mobile/work-orders/{id}/proof` | Upload completion proof (multipart: file + completionNote) |
-| POST | `/dev/reset` | Restore fixture state (helper) |
+| POST      | `/management/contracts`             | Create draft contract from approved request                                                          |
+| POST      | `/management/contracts/{id}/issue`  | Issue draft to client                                                                                |
+| POST      | `/management/work-orders`           | Create + assign work order                                                                           |
+| GET       | `/mobile/work-orders`               | List assigned to selected fitter                                                                     |
+| GET       | `/mobile/work-orders/{id}`          | Mobile-safe detail                                                                                   |
+| POST      | `/mobile/work-orders/{id}/status`   | Progress/blocked update                                                                              |
+| POST      | `/mobile/work-orders/{id}/proof`    | Upload completion proof (multipart: file + completionNote)                                           |
+| POST      | `/dev/reset`                        | Restore fixture state (helper)                                                                       |
 
 All material creates require `Idempotency-Key`. Standard error shape: `{ code, message, details? }`. Key status codes used throughout: `403` (wrong org/role), `404`, `409` (availability/state conflict), `422` (validation), `503` (simulated service failure).
 
@@ -320,54 +325,65 @@ island-media-co/
 Each commit is a complete, working vertical slice. Domain logic ships with its own tests (no separate "add tests" commits — keeps this inside 30).
 
 ### Phase 0 — Foundation (1–4)
+
 1. Scaffold — Next.js App Router + TS + Tailwind + `app/`/`features/`/`lib/`/`components/ui`/`stores` folders + TanStack Query provider + Zustand store shells + lint/format + README skeleton.
 2. MongoDB layer — `lib/db` client singleton, env config, `/api/dev/reset` stub.
 3. Data model + seed — Zod schemas for every fixture entity; seed script loads `island-media-fixtures.json` into Mongo, preserving IDs.
 4. Dual-mode auth — `middleware.ts` resolves user from `X-Prototype-User-Id` header (spec-compatible) or JWT cookie fallback; register/switch endpoints issue cookie; Zustand `persist` wired for shortlist + upload queue (reload-survival).
 
 ### Phase 1 — Domain logic core (5–8) — highest-weighted area, build + test before any UI
+
 5. Exclusive-asset availability engine + tests (incl. `request-001` zero-availability case).
 6. Capacity-pool availability engine + tests (incl. `pool-hub-screen` 4/4 + expired-hold case).
 7. Idempotency utility + tests (duplicate booking-request submission).
 8. Contract + work-order state machines + tests (blocked-needs-reason, completed-needs-proof guards).
 
 ### Phase 2 — Public/client API (9–10) → Scenario A backend
+
 9. `/api/products` + `/api/products/[id]` (search/filter, availability, price-on-request handling).
 10. `/api/booking-requests` (idempotent) + `/api/client/summary` + `/api/client/contracts` + `/api/client/contracts/[id]` (org-scoped; covers cross-org isolation test).
 
 ### Phase 3 — Management API (11–13) → Scenario B + C backend
+
 11. Requests + decisions — dashboard, list/detail, PATCH decision endpoint that re-checks availability, 409 on conflict.
 12. Contract creation/issue + client action endpoint — activates campaign, writes service event.
 13. Work-order creation/assignment.
 
 ### Phase 4 — Mobile/fitter API (14–15) → Scenario D backend
+
 14. Fitter work-order list/detail + status-update endpoint (transitions, blocked-reason validation).
 15. Proof endpoint (simulated upload) — completion-note requirement, writes client-visible service event.
 
 ### Phase 5 — Shared UI system (16)
+
 16. `components/ui` design tokens + primitives used identically across all three interfaces.
 
 ### Phase 6 — Client portal UI (17–20) → Scenario A frontend + client side of B/D
+
 17. Registration + portal shell/nav.
 18. Catalogue + product detail + filters + shortlist + request submission.
 19. Portal home/dashboard — no-contract state, attention items, contract list.
 20. Contract detail — accept/change/cancel, service timeline, proof display.
 
 ### Phase 7 — Management web UI (21–24) → Scenario B + C frontend
+
 21. Management shell + attention-led dashboard.
 22. Requests list/detail + decision actions + live availability.
 23. Contract creation/issue UI + client/account detail.
 24. Work-order creation/assignment + service history/proof visibility.
 
 ### Phase 8 — Fitter mobile PWA (25–27) → Scenario D frontend
+
 25. Fitter shell (mobile-first, PWA manifest) + today/upcoming jobs list.
 26. Job detail + progress actions + blocked-reason modal.
 27. Completion note + proof capture/upload + offline/retry/failed-upload treatment (simulated).
 
 ### Phase 9 — Cross-cutting hardening (28)
+
 28. Loading/empty/validation/success/conflict/retry/service-error states across all three interfaces + one connected end-to-end test (request → contract → work order → completion → client sees proof — required test #10).
 
 ### Phase 10 — Delivery (29–30)
+
 29. README + productionisation note + completed `SUBMISSION_TEMPLATE.md` + visual-consistency notes.
 30. Deploy (Vercel + Atlas free tier) + final `/dev/reset` check + tag release + link walkthrough video.
 
@@ -375,18 +391,18 @@ Each commit is a complete, working vertical slice. Domain logic ships with its o
 
 ## 13. Required-test coverage map
 
-| # | Required check | Landed in commit |
-|---|---|---|
-| 1 | Overlapping exclusive-asset bookings | 5 |
-| 2 | Expired vs active holds | 6 |
-| 3 | Capacity-pool availability | 6 |
-| 4 | Duplicate idempotency-key submission | 7 |
-| 5 | No-contract client can use catalogue | 10, 19 |
-| 6 | Contract issue + accept/change-request | 12, 20 |
-| 7 | Blocked work order requires reason | 8, 14 |
-| 8 | Completed work order requires proof + updates history | 8, 15 |
-| 9 | Org A cannot fetch Org B's contract | 10 |
-| 10 | One connected UI journey | 28 |
+| #   | Required check                                        | Landed in commit |
+| --- | ----------------------------------------------------- | ---------------- |
+| 1   | Overlapping exclusive-asset bookings                  | 5                |
+| 2   | Expired vs active holds                               | 6                |
+| 3   | Capacity-pool availability                            | 6                |
+| 4   | Duplicate idempotency-key submission                  | 7                |
+| 5   | No-contract client can use catalogue                  | 10, 19           |
+| 6   | Contract issue + accept/change-request                | 12, 20           |
+| 7   | Blocked work order requires reason                    | 8, 14            |
+| 8   | Completed work order requires proof + updates history | 8, 15            |
+| 9   | Org A cannot fetch Org B's contract                   | 10               |
+| 10  | One connected UI journey                              | 28               |
 
 ---
 
@@ -409,22 +425,22 @@ Each commit is a complete, working vertical slice. Domain logic ships with its o
 
 ## 16. Technical-expectations cross-check (original brief §8, verified against this plan)
 
-| Requirement | Covered by |
-|---|---|
-| Next.js, React, TypeScript | Commit 1; whole tree |
-| Three clearly distinguishable interfaces | `app/portal`, `app/management`, `app/fitter` route groups |
-| Consistent, candidate-chosen visual style | §5, Commit 16 |
-| Responsive management + client web views | §5 "Responsiveness" |
-| Mobile-first fitter experience | Commit 25, PWA manifest |
-| Clear client/server or API boundary | `app/api/*` route handlers, §8 |
-| Working prototype registration | Commit 4, 17 |
+| Requirement                                                                        | Covered by                                                                                                                                                                                                                                                                     |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Next.js, React, TypeScript                                                         | Commit 1; whole tree                                                                                                                                                                                                                                                           |
+| Three clearly distinguishable interfaces                                           | `app/portal`, `app/management`, `app/fitter` route groups                                                                                                                                                                                                                      |
+| Consistent, candidate-chosen visual style                                          | §5, Commit 16                                                                                                                                                                                                                                                                  |
+| Responsive management + client web views                                           | §5 "Responsiveness"                                                                                                                                                                                                                                                            |
+| Mobile-first fitter experience                                                     | Commit 25, PWA manifest                                                                                                                                                                                                                                                        |
+| Clear client/server or API boundary                                                | `app/api/*` route handlers, §8                                                                                                                                                                                                                                                 |
+| Working prototype registration                                                     | Commit 4, 17                                                                                                                                                                                                                                                                   |
 | Important account/request/contract/work-order/status changes persist across reload | **MongoDB is the actual source of truth for every mutation** (bookings, requests, contracts, work orders, service events) — this is real server persistence, distinct from the Zustand `persist` cache in §10, which only speeds up session/shortlist hydration on first paint |
-| Deterministic fixture seeding | `scripts/seed.ts` + `/api/dev/reset` — wipes collections and reloads the exact fixture JSON every call, same result every time, no random IDs/timestamps generated at seed time |
-| Proportionate automated tests | §13 test-coverage map |
-| Loading, empty, validation, success, conflict, retry, service-error states | Commit 28 |
-| Sensible component, domain, data boundaries | `features/*` (UI) vs `lib/domain/*` (business rules) vs `lib/db/*` (persistence) kept separate, never mixed in one file |
-| No secrets, credentials, or production data | `.env.example` only in repo, real values via deployment platform env vars, never committed |
-| Deployed preview, no card required | Commit 30 — Vercel + MongoDB Atlas free tier |
+| Deterministic fixture seeding                                                      | `scripts/seed.ts` + `/api/dev/reset` — wipes collections and reloads the exact fixture JSON every call, same result every time, no random IDs/timestamps generated at seed time                                                                                                |
+| Proportionate automated tests                                                      | §13 test-coverage map                                                                                                                                                                                                                                                          |
+| Loading, empty, validation, success, conflict, retry, service-error states         | Commit 28                                                                                                                                                                                                                                                                      |
+| Sensible component, domain, data boundaries                                        | `features/*` (UI) vs `lib/domain/*` (business rules) vs `lib/db/*` (persistence) kept separate, never mixed in one file                                                                                                                                                        |
+| No secrets, credentials, or production data                                        | `.env.example` only in repo, real values via deployment platform env vars, never committed                                                                                                                                                                                     |
+| Deployed preview, no card required                                                 | Commit 30 — Vercel + MongoDB Atlas free tier                                                                                                                                                                                                                                   |
 
 Nothing from the original brief is outstanding once this plan is followed as written.
 
@@ -440,7 +456,7 @@ One rule: **Zod schemas in `lib/schemas/` are the single source of truth.** Both
 
 Only attempted after all four connected scenarios work. Chosen improvement:
 
-**Availability conflict helper on the management request-detail screen.** When the manager opens a booking request that has zero available assets (like `request-001`), instead of just showing "unavailable," surface a short explanation of *why* (which assets are blocked and by what — booking, hold, or outage) and suggest the nearest available dates or alternative assets for the same product. This directly reduces operator effort (the manager doesn't have to manually cross-reference bookings/outages) and demonstrates understanding of the availability engine.
+**Availability conflict helper on the management request-detail screen.** When the manager opens a booking request that has zero available assets (like `request-001`), instead of just showing "unavailable," surface a short explanation of _why_ (which assets are blocked and by what — booking, hold, or outage) and suggest the nearest available dates or alternative assets for the same product. This directly reduces operator effort (the manager doesn't have to manually cross-reference bookings/outages) and demonstrates understanding of the availability engine.
 
 Keep it simple: a read-only "conflict summary" panel on the existing request-detail page, not a separate feature or modal wizard.
 

@@ -9,9 +9,7 @@ export const GET = async (req: NextRequest) => {
     if (!guard.ok) return guard.response;
 
     const { searchParams } = new URL(req.url);
-    const parsedStatus = WorkOrderStatusSchema.safeParse(
-      searchParams.get("status")
-    );
+    const parsedStatus = WorkOrderStatusSchema.safeParse(searchParams.get("status"));
     const assignedTo = searchParams.get("assignedUserId");
 
     const query: Record<string, unknown> = {};
@@ -25,10 +23,7 @@ export const GET = async (req: NextRequest) => {
     if (parsedStatus.success) query.status = parsedStatus.data;
 
     const workOrdersCol = await collections.workOrders();
-    const docs = await workOrdersCol
-      .find(query)
-      .sort({ scheduledStart: 1 })
-      .toArray();
+    const docs = await workOrdersCol.find(query).sort({ scheduledStart: 1 }).toArray();
 
     const assetsCol = await collections.assets();
     const assets = await assetsCol.find({}).toArray();

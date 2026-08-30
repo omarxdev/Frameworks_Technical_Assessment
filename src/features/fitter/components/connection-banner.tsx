@@ -45,7 +45,7 @@ export const ConnectionBanner = ({
           disabled={isWorking}
           onClick={onRetryAll}
         >
-          <RefreshCw className={cn("size-3.5", isWorking && "animate-spin")} />
+          <RefreshCw className={cn("size-4", isWorking && "animate-spin")} />
           Retry all
         </Button>
       )}

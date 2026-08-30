@@ -31,7 +31,10 @@ export const BlockedDialog = ({
   const [touched, setTouched] = useState(false);
 
   const trimmed = reason.trim();
-  const clientError = touched && !trimmed ? "A reason is required before a job can be marked blocked." : null;
+  const clientError =
+    touched && !trimmed
+      ? "A reason is required before a job can be marked blocked."
+      : null;
 
   const handleOpenChange = (next: boolean) => {
     if (!next) {
@@ -49,12 +52,12 @@ export const BlockedDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Why is this job blocked?</DialogTitle>
           <DialogDescription>
-            The reason is shared with the operations team so they can unblock
-            you. It is required.
+            The reason is shared with the operations team so they can unblock you. It is
+            required.
           </DialogDescription>
         </DialogHeader>
 
@@ -71,31 +74,27 @@ export const BlockedDialog = ({
             onChange={(event) => setReason(event.target.value)}
           />
           {clientError && (
-            <p role="alert" className="text-sm text-stop-foreground">
+            <p role="alert" className="text-stop-foreground text-sm">
               {clientError}
             </p>
           )}
           {!clientError && serverError && (
-            <p role="alert" className="text-sm text-stop-foreground">
+            <p role="alert" className="text-stop-foreground text-sm">
               {serverError}
             </p>
           )}
         </div>
 
-        <DialogFooter className="gap-2">
+        <DialogFooter>
           <Button
             variant="outline"
-            className="h-12 flex-1"
+            size="touch" className="flex-1"
             disabled={isPending}
             onClick={() => handleOpenChange(false)}
           >
             Cancel
           </Button>
-          <Button
-            className="h-12 flex-1"
-            disabled={isPending}
-            onClick={handleConfirm}
-          >
+          <Button size="touch" className="flex-1" disabled={isPending} onClick={handleConfirm}>
             {isPending && <Loader2 className="size-4 animate-spin" />}
             Mark blocked
           </Button>

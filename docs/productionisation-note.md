@@ -21,7 +21,7 @@ handling) and scheduled reconciliation (below).
 
 **Idempotency.** The prototype stores `(scope, actorId, key) → response hash` in a collection and
 returns the stored response on replay, 409 on the same key with a different body. Production keeps
-the model and adds: a TTL index (24h is the usual window), storing the response *before* returning
+the model and adds: a TTL index (24h is the usual window), storing the response _before_ returning
 it inside the same transaction as the write, and a `state` column so a crashed in-flight request is
 retried rather than replayed as success. Every material create already requires the header; in
 production I would also require it on every state transition, not just creates, because a fitter on
@@ -52,18 +52,18 @@ The prototype deliberately keeps product, physical asset, capacity pool, booking
 campaign, work order, service event and proof record as separate entities. That separation is the
 core of the model and does not change. What changes is where truth lives:
 
-| Concern | Source of truth | Our role |
-|---|---|---|
-| Client identity and contact | External CRM | Cache a projection; never author |
-| Invoices, payments, revenue | Accounting ledger | Emit billable events; never compute balances |
-| Physical inventory and outages | Media owner's scheduler | Reconcile nightly; treat their export as authoritative on conflict |
-| Proof files | Object storage | Store keys and metadata only, never bytes |
-| Contracts, campaigns, work orders, service events | **Us** | Full authority |
+| Concern                                           | Source of truth         | Our role                                                           |
+| ------------------------------------------------- | ----------------------- | ------------------------------------------------------------------ |
+| Client identity and contact                       | External CRM            | Cache a projection; never author                                   |
+| Invoices, payments, revenue                       | Accounting ledger       | Emit billable events; never compute balances                       |
+| Physical inventory and outages                    | Media owner's scheduler | Reconcile nightly; treat their export as authoritative on conflict |
+| Proof files                                       | Object storage          | Store keys and metadata only, never bytes                          |
+| Contracts, campaigns, work orders, service events | **Us**                  | Full authority                                                     |
 
 The prototype currently stores proof as a base64 data URI inside the work order's related document.
 That is the single largest shortcut in the build and is called out below.
 
-Availability is a *derived* value, never a stored one. It is computed from bookings, active holds and
+Availability is a _derived_ value, never a stored one. It is computed from bookings, active holds and
 confirmed outages at read time and rechecked at every decision point. Caching it would create exactly
 the double-booking class of bug the fixtures are designed to catch.
 
@@ -76,7 +76,7 @@ JWT cookie. Production:
   product with a handful of users per client, delegated identity is cheaper than owning it.
 - Mandatory email verification before an organisation can submit a request; the request is the point
   where our staff start spending time, so that is the right gate.
-- Business verification before a contract can be *issued*, not at signup. Making a prospect prove
+- Business verification before a contract can be _issued_, not at signup. Making a prospect prove
   company identity before they can browse a catalogue kills the discovery journey the brief asks for.
   Company registration number checked against the Jersey Financial Services Commission register, plus
   a named signatory.
@@ -167,7 +167,7 @@ actual fitters before spending the money.
 - Migrations: versioned, forward-only, reviewed, run as a deploy step separate from the app rollout,
   and expand/contract for anything destructive so a rollback does not lose data.
 - Backups: automated daily snapshots plus point-in-time recovery, and — the part usually skipped — a
-  scheduled *restore* test, because an untested backup is a hope.
+  scheduled _restore_ test, because an untested backup is a hope.
 - Rollback: immutable build artefacts, one-click revert to the previous release, feature flags for
   risky behaviour so a rollback does not require a deploy.
 - Secrets: platform secret manager, injected at runtime, rotated on a schedule and on staff change,
@@ -178,15 +178,15 @@ actual fitters before spending the money.
 
 For a Jersey-scale deployment — one agency, tens of clients, low hundreds of work orders a month:
 
-| Item | Monthly |
-|---|---|
-| App hosting (Vercel Pro or a small container host) | £20–£40 |
-| Managed Postgres or MongoDB Atlas, backed up | £25–£60 |
-| Object storage + egress for proof | £5–£15 |
-| Redis/queue | £10–£20 |
-| Error monitoring and logs | £0–£30 |
-| Email/identity provider | £0–£40 |
-| **Total** | **≈ £60–£200** |
+| Item                                               | Monthly        |
+| -------------------------------------------------- | -------------- |
+| App hosting (Vercel Pro or a small container host) | £20–£40        |
+| Managed Postgres or MongoDB Atlas, backed up       | £25–£60        |
+| Object storage + egress for proof                  | £5–£15         |
+| Redis/queue                                        | £10–£20        |
+| Error monitoring and logs                          | £0–£30         |
+| Email/identity provider                            | £0–£40         |
+| **Total**                                          | **≈ £60–£200** |
 
 Infrastructure is not the cost of this system; maintenance is. Budget for a retained developer
 day or two per month, and expect the media-owner reconciliation to be the recurring source of work.

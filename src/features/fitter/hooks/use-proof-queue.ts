@@ -31,8 +31,7 @@ const transientMessage =
 
 const failureMessage = (error: unknown) => {
   if (error instanceof ApiRequestError) return error.message;
-  if (typeof navigator !== "undefined" && !navigator.onLine)
-    return offlineMessage;
+  if (typeof navigator !== "undefined" && !navigator.onLine) return offlineMessage;
   return transientMessage;
 };
 
@@ -170,13 +169,19 @@ export const useProofQueue = (workOrderId?: string) => {
 
   useEffect(() => {
     if (!isOnline) return;
-    void flush();
+
+    const onReconnect = () => {
+      void flush();
+    };
+
+    onReconnect();
+    window.addEventListener("online", onReconnect);
+    return () => window.removeEventListener("online", onReconnect);
   }, [isOnline, flush]);
 
   const pending = items.filter(
     (item) =>
-      item.status !== "uploaded" &&
-      (!workOrderId || item.workOrderId === workOrderId)
+      item.status !== "uploaded" && (!workOrderId || item.workOrderId === workOrderId)
   );
 
   return {

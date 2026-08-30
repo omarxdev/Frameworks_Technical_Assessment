@@ -209,9 +209,9 @@ describe("Work-order transitions and scoping", () => {
     );
 
     expect(result.status).toBe(200);
-    expect(
-      result.body.items.every((i: any) => i.assignedUserId === USERS.fitter)
-    ).toBe(true);
+    expect(result.body.items.every((i: any) => i.assignedUserId === USERS.fitter)).toBe(
+      true
+    );
   });
 
   it("hides internal notes from the mobile payload", async () => {
@@ -228,9 +228,7 @@ describe("Work-order transitions and scoping", () => {
 
   it("refuses a client session on the field routes", async () => {
     const result = await readJson(
-      await listWorkOrders(
-        makeRequest("/mobile/work-orders", { as: USERS.oakLegal })
-      )
+      await listWorkOrders(makeRequest("/mobile/work-orders", { as: USERS.oakLegal }))
     );
 
     expect(result.status).toBe(403);

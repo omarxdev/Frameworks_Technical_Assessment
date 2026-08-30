@@ -335,16 +335,16 @@ If every required scenario works, one small improvement that reduces operator ef
 
 ## 13. Evaluation
 
-| Area | Weight |
-|---|---:|
-| Core connected scenarios and business rules | 35 |
-| Product judgement across all three interfaces | 15 |
-| Engineering quality | 15 |
-| Production architecture, security and maintainability | 15 |
-| Useful initiative and constructive challenge | 10 |
-| Communication and delivery discipline | 5 |
-| AI-tool use and verification | 5 |
-| Total | 100 |
+| Area                                                  | Weight |
+| ----------------------------------------------------- | -----: |
+| Core connected scenarios and business rules           |     35 |
+| Product judgement across all three interfaces         |     15 |
+| Engineering quality                                   |     15 |
+| Production architecture, security and maintainability |     15 |
+| Useful initiative and constructive challenge          |     10 |
+| Communication and delivery discipline                 |      5 |
+| AI-tool use and verification                          |      5 |
+| Total                                                 |    100 |
 
 Useful initiative scores only after the mandatory scenarios work. We do not reward feature count, gratuitous AI or unnecessary infrastructure.
 

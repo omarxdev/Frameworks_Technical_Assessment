@@ -7,6 +7,8 @@ import { StatusPill } from "@/components/ui/status-pill";
 import { EmptyState } from "@/components/ui/states";
 import { cn } from "@/lib/utils";
 import type { AttentionItem, AttentionPriority } from "@/features/management/lib/types";
+import { SubsectionLabel } from "@/components/ui/typography";
+import { Card } from "@/components/ui/card";
 
 const priorityOrder: Record<AttentionPriority, number> = {
   urgent: 0,
@@ -27,14 +29,14 @@ const priorityMeta: Record<
   urgent: {
     label: "Urgent",
     tone: "stop",
-    card: "border-stop/30 bg-stop-surface/40",
+    card: "border-stop/25 bg-stop-surface/40",
     iconClass: "text-stop",
     icon: ShieldAlert,
   },
   high: {
     label: "High",
     tone: "warn",
-    card: "border-warn/30 bg-warn-surface/40",
+    card: "border-warn/25 bg-warn-surface/40",
     iconClass: "text-warn",
     icon: AlertTriangle,
   },
@@ -50,18 +52,10 @@ const priorityMeta: Record<
 const resolvePriority = (value: string): AttentionPriority =>
   value === "urgent" || value === "high" ? value : "normal";
 
-const resolveLink = (item: AttentionItem) => {
-  if (!item.link) return null;
-  if (item.link.startsWith("/management/work-orders/")) {
-    return `/management/work-orders?focus=${item.entityId ?? ""}`;
-  }
-  return item.link;
-};
-
 const actionLabel = (type: string) => {
   if (type === "booking_request") return "Review request";
   if (type === "work_order_blocked") return "Open work order";
-  if (type === "client_change_request") return "Open contract";
+  if (type === "client_change_request") return "Review request";
   return "Open";
 };
 
@@ -81,12 +75,12 @@ export const AttentionPanel = ({ items }: { items: AttentionItem[] }) => {
 
   if (groups.length === 0) {
     return (
-      <div className="rounded-xl border border-border bg-card">
+      <Card>
         <EmptyState
           title="Nothing needs your attention"
           message="No pending requests, blocked work orders, client change requests or stale verifications."
         />
-      </div>
+      </Card>
     );
   }
 
@@ -100,17 +94,17 @@ export const AttentionPanel = ({ items }: { items: AttentionItem[] }) => {
           <section key={priority} className="flex flex-col gap-3">
             <div className="flex items-center gap-2">
               <Icon className={cn("size-4", meta.iconClass)} />
-              <h3 className="text-sm font-semibold tracking-tight">
+              <SubsectionLabel>
                 {meta.label}
-                <span className="ml-2 font-normal text-muted-foreground">
+                <span className="text-muted-foreground ml-2 font-normal">
                   {entries.length} item{entries.length === 1 ? "" : "s"}
                 </span>
-              </h3>
+              </SubsectionLabel>
             </div>
 
             <ul className="grid gap-3 lg:grid-cols-2">
               {entries.map((item) => {
-                const href = resolveLink(item);
+                const href = item.link ?? null;
 
                 return (
                   <li
@@ -124,21 +118,21 @@ export const AttentionPanel = ({ items }: { items: AttentionItem[] }) => {
                       <p className="font-medium">{item.title}</p>
                       <StatusPill status={meta.label} tone={meta.tone} />
                     </div>
-                    <p className="text-sm text-muted-foreground">{item.message}</p>
+                    <p className="text-muted-foreground text-sm">{item.message}</p>
                     {href ? (
                       <Button
                         asChild
                         size="sm"
                         variant="outline"
-                        className="w-fit gap-1.5 bg-background"
+                        className="bg-background w-fit gap-1.5"
                       >
                         <Link href={href}>
                           {actionLabel(item.type)}
-                          <ArrowRight className="size-3.5" />
+                          <ArrowRight className="size-4" />
                         </Link>
                       </Button>
                     ) : (
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-muted-foreground text-xs">
                         No linked record — resolve with the media owner directly.
                       </p>
                     )}

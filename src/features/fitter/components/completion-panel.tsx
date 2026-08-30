@@ -10,13 +10,11 @@ import { Callout } from "@/components/ui/states";
 import { UploadQueuePanel } from "@/features/fitter/components/upload-queue-panel";
 import { useProofQueue } from "@/features/fitter/hooks/use-proof-queue";
 import { useStatusTransition } from "@/features/fitter/hooks/use-status-transition";
-import { formatDateTime } from "@/features/fitter/lib/format";
-import {
-  ALLOWED_PROOF_LABEL,
-  validateProofFile,
-} from "@/features/fitter/lib/proof";
-import { canTransitionWorkOrder } from "@/lib/domain/workOrders/stateMachine";
+import { formatMoment as formatDateTime } from "@/lib/format";
+import { ALLOWED_PROOF_LABEL, validateProofFile } from "@/features/fitter/lib/proof";
+import { canTransitionWorkOrder } from "@/lib/domain/work-orders/state-machine";
 import type { FitterWorkOrderDetail } from "@/features/fitter/lib/types";
+import { SubsectionLabel } from "@/components/ui/typography";
 
 export const CompletionPanel = ({
   workOrder,
@@ -28,9 +26,7 @@ export const CompletionPanel = ({
   const [file, setFile] = useState<File | null>(null);
   const [isAttaching, setIsAttaching] = useState(false);
 
-  const { isOnline, pending, queueProof, retry, discard } = useProofQueue(
-    workOrder.id
-  );
+  const { isOnline, pending, queueProof, retry, discard } = useProofQueue(workOrder.id);
   const transition = useStatusTransition(workOrder.id);
 
   const proofCount = workOrder.proofRecords.length;
@@ -92,25 +88,25 @@ export const CompletionPanel = ({
   if (workOrder.status === "completed") {
     return (
       <section className="flex flex-col gap-2.5">
-        <h2 className="text-sm font-semibold tracking-wide uppercase">
+        <SubsectionLabel as="h2">
           Completion record
-        </h2>
+        </SubsectionLabel>
         {workOrder.completionNote && (
-          <p className="rounded-xl border border-border bg-card px-4 py-3 text-sm">
+          <p className="bg-card ring-foreground/10 rounded-xl px-4 py-3 text-sm ring-1">
             {workOrder.completionNote}
           </p>
         )}
         {workOrder.proofRecords.map((proof) => (
-          <p
+          <Callout
             key={proof.id}
-            className="flex items-center gap-2 rounded-xl border border-ok/25 bg-ok-surface px-4 py-3 text-sm text-ok-foreground"
+            tone="ok"
+            size="lg"
+            className="flex items-center gap-2"
           >
             <FileCheck2 className="size-4 shrink-0" />
             <span className="min-w-0 flex-1 truncate">{proof.fileName}</span>
-            <span className="shrink-0 text-xs">
-              {formatDateTime(proof.createdAt)}
-            </span>
-          </p>
+            <span className="shrink-0 text-xs">{formatDateTime(proof.createdAt)}</span>
+          </Callout>
         ))}
       </section>
     );
@@ -118,14 +114,14 @@ export const CompletionPanel = ({
 
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-sm font-semibold tracking-wide uppercase">
+      <SubsectionLabel as="h2">
         Complete the job
-      </h2>
+      </SubsectionLabel>
 
       {proofCount === 0 && (
         <Callout tone="warn" title="Proof required">
-          A completion note and at least one photo are needed before this job
-          can be closed.
+          A completion note and at least one photo are needed before this job can be
+          closed.
         </Callout>
       )}
 
@@ -149,22 +145,22 @@ export const CompletionPanel = ({
           accept="image/*"
           capture="environment"
           onChange={handleFileChange}
-          className="block h-14 w-full cursor-pointer rounded-lg border border-border bg-card p-3 text-sm file:mr-3 file:h-8 file:rounded-md file:border-0 file:bg-primary file:px-3 file:text-sm file:font-medium file:text-primary-foreground"
+          className="border-border bg-card file:bg-primary file:text-primary-foreground block h-touch-lg w-full cursor-pointer rounded-lg border p-3 text-sm file:mr-3 file:h-8 file:rounded-md file:border-0 file:px-3 file:text-sm file:font-medium"
         />
-        <p className="text-xs text-muted-foreground">
+        <p className="text-muted-foreground text-xs">
           {ALLOWED_PROOF_LABEL}, up to 2MB. Opens the camera on a phone.
         </p>
       </div>
 
       <Button
-        className="h-14 w-full gap-2 text-base"
+        size="touch-lg" className="w-full"
         disabled={!file || isAttaching}
         onClick={handleAttach}
       >
         {isAttaching ? (
-          <Loader2 className="size-5 animate-spin" />
+          <Loader2 className="animate-spin" />
         ) : (
-          <Camera className="size-5" />
+          <Camera />
         )}
         {isOnline ? "Attach proof" : "Save proof for later"}
       </Button>
@@ -172,16 +168,18 @@ export const CompletionPanel = ({
       {proofCount > 0 && (
         <div className="flex flex-col gap-2">
           {workOrder.proofRecords.map((proof) => (
-            <p
+            <Callout
               key={proof.id}
-              className="flex items-center gap-2 rounded-xl border border-ok/25 bg-ok-surface px-4 py-3 text-sm text-ok-foreground"
+              tone="ok"
+              size="lg"
+              className="flex items-center gap-2"
             >
               <FileCheck2 className="size-4 shrink-0" />
               <span className="min-w-0 flex-1 truncate">{proof.fileName}</span>
               <span className="shrink-0 text-xs">
                 {formatDateTime(proof.createdAt)}
               </span>
-            </p>
+            </Callout>
           ))}
         </div>
       )}
@@ -194,20 +192,18 @@ export const CompletionPanel = ({
       />
 
       {!canComplete && (
-        <Callout tone="info">
-          Mark yourself on site before completing this job.
-        </Callout>
+        <Callout tone="info">Mark yourself on site before completing this job.</Callout>
       )}
 
       <Button
-        className="h-14 w-full gap-2 text-base"
+        size="touch-lg" className="w-full"
         disabled={!readyToComplete || transition.isPending}
         onClick={handleComplete}
       >
         {transition.isPending ? (
-          <Loader2 className="size-5 animate-spin" />
+          <Loader2 className="animate-spin" />
         ) : (
-          <CheckCircle2 className="size-5" />
+          <CheckCircle2 />
         )}
         Mark complete
       </Button>

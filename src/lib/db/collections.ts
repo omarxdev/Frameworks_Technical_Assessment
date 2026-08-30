@@ -17,14 +17,17 @@ import type {
   WorkOrder,
   ServiceEvent,
   ProofRecord,
+  ClientRequest,
 } from "@/lib/schemas";
 
 export type WithStringId<T> = T & { _id: string };
 
-export async function getCollection<T extends Document>(name: string): Promise<Collection<T>> {
+export const getCollection = async <T extends Document>(
+  name: string
+): Promise<Collection<T>> => {
   const db = await getDb();
   return db.collection<T>(name);
-}
+};
 
 export const collections = {
   mediaOwners: () => getCollection<WithStringId<MediaOwner>>("mediaOwners"),
@@ -42,7 +45,7 @@ export const collections = {
   campaigns: () => getCollection<WithStringId<Campaign>>("campaigns"),
   workOrders: () => getCollection<WithStringId<WorkOrder>>("workOrders"),
   serviceEvents: () => getCollection<WithStringId<ServiceEvent>>("serviceEvents"),
-  clientRequests: () => getCollection<WithStringId<any>>("clientRequests"),
+  clientRequests: () => getCollection<WithStringId<ClientRequest>>("clientRequests"),
   proofRecords: () => getCollection<WithStringId<ProofRecord>>("proofRecords"),
   idempotencyKeys: () =>
     getCollection<{

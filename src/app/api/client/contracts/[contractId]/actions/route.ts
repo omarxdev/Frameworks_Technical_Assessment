@@ -2,10 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireClientOrganisation } from "@/lib/auth/session";
 import { collections } from "@/lib/db/collections";
 import { ClientContractActionSchema } from "@/lib/schemas";
-import { canTransitionContract } from "@/lib/domain/contracts/stateMachine";
+import { canTransitionContract } from "@/lib/domain/contracts/state-machine";
 import { checkAvailability, loadInventory } from "@/lib/domain/availability/recheck";
 import { FIXTURE_CLOCK } from "@/lib/constants";
-import { newBookingId, newCampaignId, newClientRequestId, newServiceEventId } from "@/lib/ids";
+import {
+  newBookingId,
+  newCampaignId,
+  newClientRequestId,
+  newServiceEventId,
+} from "@/lib/ids";
 
 const conflict = (message: string) =>
   NextResponse.json({ code: "CONFLICT", message }, { status: 409 });
@@ -91,6 +96,25 @@ export const POST = async (
         }
       }
 
+      await contractsCol.updateOne(
+        { id: contractId },
+        {
+          $set: { status: "accepted", acceptedAt: FIXTURE_CLOCK },
+          $push: {
+            history: {
+              at: FIXTURE_CLOCK,
+              actor: user.name,
+              action: "accepted",
+              note: note || "Accepted via client portal prototype.",
+            },
+          },
+        }
+      );
+
+      if (!canTransitionContract("accepted", "active")) {
+        return conflict("An accepted contract cannot be activated.");
+      }
+
       const bookingsCol = await collections.bookings();
       const bookingIds: string[] = [];
 
@@ -121,25 +145,15 @@ export const POST = async (
         {
           $set: {
             status: "active",
-            acceptedAt: FIXTURE_CLOCK,
             activatedAt: FIXTURE_CLOCK,
+            bookingIds,
           },
           $push: {
             history: {
-              $each: [
-                {
-                  at: FIXTURE_CLOCK,
-                  actor: user.name,
-                  action: "accepted",
-                  note: note || "Accepted via client portal prototype.",
-                },
-                {
-                  at: FIXTURE_CLOCK,
-                  actor: "system",
-                  action: "activated",
-                  note: "Inventory rechecked and bookings confirmed on acceptance.",
-                },
-              ],
+              at: FIXTURE_CLOCK,
+              actor: "system",
+              action: "activated",
+              note: "Inventory rechecked and bookings confirmed on acceptance.",
             },
           },
         }
@@ -191,10 +205,7 @@ export const POST = async (
       });
 
       const orgsCol = await collections.organisations();
-      await orgsCol.updateOne(
-        { id: organisation.id },
-        { $inc: { contractCount: 1 } }
-      );
+      await orgsCol.updateOne({ id: organisation.id }, { $inc: { contractCount: 1 } });
     } else if (action === "request_changes") {
       if (!canTransitionContract(contract.status, "change_requested")) {
         return conflict(
@@ -237,11 +248,28 @@ export const POST = async (
         status: "submitted",
         createdAt: FIXTURE_CLOCK,
         summary: note,
-        history: [
-          { at: FIXTURE_CLOCK, actor: user.name, action: "submitted", note },
-        ],
+        history: [{ at: FIXTURE_CLOCK, actor: user.name, action: "submitted", note }],
       });
     } else if (action === "request_cancellation") {
+      if (contract.status === "cancelled" || contract.status === "completed") {
+        return conflict(
+          `A contract in '${contract.status}' status can no longer be cancelled.`
+        );
+      }
+
+      const clientRequestsColForCheck = await collections.clientRequests();
+      const openCancellation = await clientRequestsColForCheck.findOne({
+        contractId,
+        type: "cancellation",
+        status: "submitted",
+      });
+
+      if (openCancellation) {
+        return conflict(
+          "A cancellation request for this contract is already awaiting management review."
+        );
+      }
+
       if (!note?.trim()) {
         return NextResponse.json(
           {
@@ -262,9 +290,7 @@ export const POST = async (
         status: "submitted",
         createdAt: FIXTURE_CLOCK,
         summary: note,
-        history: [
-          { at: FIXTURE_CLOCK, actor: user.name, action: "submitted", note },
-        ],
+        history: [{ at: FIXTURE_CLOCK, actor: user.name, action: "submitted", note }],
       });
 
       await contractsCol.updateOne(

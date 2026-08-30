@@ -8,9 +8,7 @@ const resolveSecret = () => {
   if (configured && configured.length >= 32) return configured;
 
   if (process.env.NODE_ENV === "production") {
-    throw new Error(
-      "JWT_SECRET must be set to at least 32 characters in production."
-    );
+    throw new Error("JWT_SECRET must be set to at least 32 characters in production.");
   }
 
   return DEV_FALLBACK_SECRET;

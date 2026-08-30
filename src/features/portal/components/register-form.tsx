@@ -7,13 +7,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Callout } from "@/components/ui/states";
@@ -60,10 +54,7 @@ export const RegisterForm = () => {
       onError: (error) => {
         if (errorCode(error) === "EMAIL_IN_USE") {
           setError("email", {
-            message: errorMessage(
-              error,
-              "An account already exists for this email."
-            ),
+            message: errorMessage(error, "An account already exists for this email."),
           });
           return;
         }
@@ -78,12 +69,12 @@ export const RegisterForm = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-heading text-xl">
+        <CardTitle size="lg">
           Create your client account
         </CardTitle>
         <CardDescription>
-          One organisation, one contact. You will land straight in the portal
-          and can browse the catalogue immediately.
+          One organisation, one contact. You will land straight in the portal and can
+          browse the catalogue immediately.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -98,7 +89,7 @@ export const RegisterForm = () => {
               {...register("organisationName")}
             />
             {errors.organisationName && (
-              <p className="text-sm text-stop-foreground">
+              <p className="text-stop-foreground text-sm">
                 {errors.organisationName.message}
               </p>
             )}
@@ -114,7 +105,7 @@ export const RegisterForm = () => {
               {...register("contactName")}
             />
             {errors.contactName && (
-              <p className="text-sm text-stop-foreground">
+              <p className="text-stop-foreground text-sm">
                 {errors.contactName.message}
               </p>
             )}
@@ -131,9 +122,7 @@ export const RegisterForm = () => {
               {...register("email")}
             />
             {errors.email && (
-              <p className="text-sm text-stop-foreground">
-                {errors.email.message}
-              </p>
+              <p className="text-stop-foreground text-sm">{errors.email.message}</p>
             )}
           </div>
 
@@ -147,9 +136,9 @@ export const RegisterForm = () => {
             {mutation.isPending ? "Creating your account" : "Create account"}
           </Button>
 
-          <p className="text-xs text-muted-foreground">
-            Already registered? Pick your organisation from the role switcher
-            once you are inside the{" "}
+          <p className="text-muted-foreground text-xs">
+            Already registered? Pick your organisation from the role switcher once you
+            are inside the{" "}
             <Link href="/portal" className="underline underline-offset-2">
               client portal
             </Link>

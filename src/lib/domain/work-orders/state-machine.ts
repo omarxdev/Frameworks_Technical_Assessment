@@ -1,21 +1,17 @@
 import type { WorkOrderStatus } from "@/lib/schemas";
 
-export const VALID_WORK_ORDER_TRANSITIONS: Record<
-  WorkOrderStatus,
-  WorkOrderStatus[]
-> = {
-  draft: ["assigned"],
-  assigned: ["travelling", "on_site", "blocked"],
-  travelling: ["on_site", "blocked", "assigned"],
-  on_site: ["completed", "blocked", "travelling"],
-  blocked: ["assigned", "travelling", "on_site"],
-  completed: [],
-};
+export const VALID_WORK_ORDER_TRANSITIONS: Record<WorkOrderStatus, WorkOrderStatus[]> =
+  {
+    draft: ["assigned"],
+    assigned: ["travelling", "on_site", "blocked"],
+    travelling: ["on_site", "blocked", "assigned"],
+    on_site: ["completed", "blocked", "travelling"],
+    blocked: ["assigned", "travelling", "on_site"],
+    completed: [],
+  };
 
-export const canTransitionWorkOrder = (
-  from: WorkOrderStatus,
-  to: WorkOrderStatus
-) => VALID_WORK_ORDER_TRANSITIONS[from].includes(to);
+export const canTransitionWorkOrder = (from: WorkOrderStatus, to: WorkOrderStatus) =>
+  VALID_WORK_ORDER_TRANSITIONS[from].includes(to);
 
 export interface WorkOrderTransitionContext {
   note?: string | null;

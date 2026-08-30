@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth/session";
 import { collections } from "@/lib/db/collections";
-import { canTransitionContract } from "@/lib/domain/contracts/stateMachine";
+import { canTransitionContract } from "@/lib/domain/contracts/state-machine";
 import { FIXTURE_CLOCK } from "@/lib/constants";
 import { newCampaignId, newServiceEventId } from "@/lib/ids";
 
@@ -83,6 +83,24 @@ export const POST = async (
         currentStage: "contract_issued",
         clientVisible: true,
       });
+    }
+
+    if (reissue) {
+      const clientRequestsCol = await collections.clientRequests();
+      await clientRequestsCol.updateMany(
+        { contractId, type: "contract_change", status: "submitted" },
+        {
+          $set: { status: "resolved", resolvedAt: FIXTURE_CLOCK },
+          $push: {
+            history: {
+              at: FIXTURE_CLOCK,
+              actor: guard.user.name,
+              action: "resolved",
+              note: `Addressed by contract version ${version}.`,
+            },
+          },
+        }
+      );
     }
 
     const serviceEventsCol = await collections.serviceEvents();

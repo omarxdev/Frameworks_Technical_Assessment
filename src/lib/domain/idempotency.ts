@@ -14,7 +14,9 @@ export const readIdempotencyKey = (req: NextRequest) =>
   req.headers.get("idempotency-key")?.trim() || null;
 
 const fingerprint = (body: unknown) =>
-  createHash("sha256").update(JSON.stringify(body ?? null)).digest("hex");
+  createHash("sha256")
+    .update(JSON.stringify(body ?? null))
+    .digest("hex");
 
 const scopeId = (scope: string, actorId: string, key: string) =>
   `${scope}:${actorId}:${key}`;

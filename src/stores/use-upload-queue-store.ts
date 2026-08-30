@@ -21,7 +21,9 @@ export interface QueuedUpload {
 
 interface UploadQueueState {
   items: QueuedUpload[];
-  enqueue: (item: Omit<QueuedUpload, "status" | "attempts" | "lastError" | "queuedAt">) => void;
+  enqueue: (
+    item: Omit<QueuedUpload, "status" | "attempts" | "lastError" | "queuedAt">
+  ) => void;
   markUploading: (id: string) => void;
   markUploaded: (id: string) => void;
   markFailed: (id: string, error: string) => void;

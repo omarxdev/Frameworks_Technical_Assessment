@@ -6,9 +6,11 @@ import { JobCard } from "@/features/fitter/components/job-card";
 import { SignalToggle } from "@/features/fitter/components/signal-toggle";
 import { useProofQueue } from "@/features/fitter/hooks/use-proof-queue";
 import { useWorkOrders } from "@/features/fitter/hooks/use-work-orders";
-import { isToday, isUpcoming } from "@/features/fitter/lib/format";
+import { isToday, isUpcoming } from "@/lib/format";
 import { FIXTURE_CLOCK_DATE } from "@/lib/constants";
 import type { FitterWorkOrder } from "@/features/fitter/lib/types";
+import { PageTitle, SubsectionLabel } from "@/components/ui/typography";
+import { Card, CardContent } from "@/components/ui/card";
 
 const clockLabel = FIXTURE_CLOCK_DATE.toLocaleDateString("en-GB", {
   weekday: "long",
@@ -35,11 +37,11 @@ const Section = ({
 }) => (
   <section className="flex flex-col gap-2.5">
     <div className="flex items-baseline justify-between gap-2">
-      <h2 className="text-sm font-semibold tracking-wide uppercase">{title}</h2>
-      {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
+      <SubsectionLabel as="h2">{title}</SubsectionLabel>
+      {hint && <span className="text-muted-foreground text-xs">{hint}</span>}
     </div>
     {workOrders.length === 0 ? (
-      <p className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
+      <p className="border-border text-muted-foreground rounded-xl border border-dashed px-4 py-6 text-center text-sm">
         {emptyMessage}
       </p>
     ) : (
@@ -101,17 +103,14 @@ export const JobList = () => {
   const today = items.filter((item) => isToday(item.scheduledStart));
   const upcoming = items.filter((item) => isUpcoming(item.scheduledStart));
   const earlier = items.filter(
-    (item) =>
-      !isToday(item.scheduledStart) && !isUpcoming(item.scheduledStart)
+    (item) => !isToday(item.scheduledStart) && !isUpcoming(item.scheduledStart)
   );
 
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-1">
-        <h1 className="font-heading text-2xl font-semibold tracking-tight">
-          My jobs
-        </h1>
-        <p className="text-sm text-muted-foreground">{clockLabel}</p>
+        <PageTitle>My jobs</PageTitle>
+        <p className="text-muted-foreground text-sm">{clockLabel}</p>
       </header>
 
       <Section
@@ -142,14 +141,16 @@ export const JobList = () => {
         />
       )}
 
-      <div className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4">
-        <p className="text-sm font-semibold">Reviewer tools</p>
-        <p className="text-xs text-muted-foreground">
-          Forces the proof upload to fail with a 503 so the retry queue can be
-          demonstrated on demand.
-        </p>
-        <SignalToggle />
-      </div>
+      <Card>
+        <CardContent className="flex flex-col gap-2">
+          <p className="text-sm font-semibold">Reviewer tools</p>
+          <p className="text-muted-foreground text-xs">
+            Forces the proof upload to fail with a 503 so the retry queue can be
+            demonstrated on demand.
+          </p>
+          <SignalToggle />
+              </CardContent>
+      </Card>
     </div>
   );
 };

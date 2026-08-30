@@ -2,7 +2,7 @@
 
 import { CalendarX2, Lock, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { formatDateRange } from "@/features/management/lib/format";
+import { formatDateRange } from "@/lib/format";
 import type { AvailabilityBlocker } from "@/features/management/lib/types";
 
 const blockerMeta: Record<
@@ -48,20 +48,20 @@ export const BlockerList = ({
         return (
           <li
             key={`${blocker.id}-${index}`}
-            className="flex gap-3 rounded-lg border border-border bg-background p-3"
+            className="border-border bg-background flex gap-3 rounded-lg border p-3"
           >
-            <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-stop-surface text-stop-foreground">
-              <Icon className="size-3.5" />
+            <span className="bg-stop-surface text-stop-foreground mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full">
+              <Icon className="size-4" />
             </span>
             <div className="flex min-w-0 flex-col gap-0.5">
               <p className="text-sm font-medium">
                 {meta.label}
-                <span className="ml-2 font-normal text-muted-foreground">
+                <span className="text-muted-foreground ml-2 font-normal">
                   {blocker.id}
                 </span>
               </p>
-              <p className="text-sm break-words text-foreground">{blocker.label}</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-foreground text-sm break-words">{blocker.label}</p>
+              <p className="text-muted-foreground text-xs">
                 Blocks {formatDateRange(blocker.startDate, blocker.endDate)} ·{" "}
                 {meta.explanation}
               </p>

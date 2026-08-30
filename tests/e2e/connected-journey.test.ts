@@ -83,9 +83,7 @@ describe("Required check 10: one connected journey across all three surfaces", (
 
     expect(result.status).toBe(200);
     expect(
-      result.body.attentionItems.some(
-        (a: any) => a.entityId === journey.requestId
-      )
+      result.body.attentionItems.some((a: any) => a.entityId === journey.requestId)
     ).toBe(true);
   });
 
@@ -158,9 +156,7 @@ describe("Required check 10: one connected journey across all three surfaces", (
     );
 
     expect(
-      summary.body.attentionItems.some(
-        (a: any) => a.contractId === journey.contractId
-      )
+      summary.body.attentionItems.some((a: any) => a.contractId === journey.contractId)
     ).toBe(true);
   });
 
@@ -242,9 +238,7 @@ describe("Required check 10: one connected journey across all three surfaces", (
     expect((await readJson(await step("travelling", null, "j-travel"))).status).toBe(
       200
     );
-    expect((await readJson(await step("on_site", null, "j-onsite"))).status).toBe(
-      200
-    );
+    expect((await readJson(await step("on_site", null, "j-onsite"))).status).toBe(200);
 
     const blocked = await readJson(await step("blocked", null, "j-blocked-bad"));
     expect(blocked.status).toBe(422);
