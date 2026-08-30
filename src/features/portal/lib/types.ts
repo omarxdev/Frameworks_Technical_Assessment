@@ -15,6 +15,7 @@ import type {
 export type PortalAttentionPriority = "high" | "normal";
 
 export interface PortalAttentionItem {
+  id: string;
   type: string;
   title: string;
   message: string;

@@ -323,7 +323,7 @@ export const WorkOrderForm = () => {
           <FieldError message={errors.instructions?.message} />
         </div>
 
-        <div className="border-border bg-muted/50 flex flex-col gap-1.5 rounded-lg border p-4">
+        <div className="border-border bg-muted/50 flex flex-col gap-1.5 rounded-xl border p-4">
           <Label htmlFor="internal-notes" className="flex items-center gap-1.5">
             <EyeOff className="size-4" />
             Internal notes

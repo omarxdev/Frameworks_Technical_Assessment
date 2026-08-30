@@ -29,7 +29,7 @@ const ShortlistStrip = () => {
   if (!hydrated || items.length === 0) return null;
 
   return (
-    <div className="border-border bg-muted/40 flex flex-col gap-3 rounded-xl border p-4">
+    <div className="border-border bg-muted/50 flex flex-col gap-3 rounded-xl border p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm font-medium">
           Shortlist ({items.length}) — saved on this device only

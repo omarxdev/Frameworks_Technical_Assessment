@@ -87,7 +87,7 @@ export const CompletionPanel = ({
 
   if (workOrder.status === "completed") {
     return (
-      <section className="flex flex-col gap-2.5">
+      <section className="flex flex-col gap-3">
         <SubsectionLabel as="h2">
           Completion record
         </SubsectionLabel>

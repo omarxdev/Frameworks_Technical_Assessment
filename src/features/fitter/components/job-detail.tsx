@@ -34,7 +34,7 @@ export const JobDetail = ({ workOrderId }: { workOrderId: string }) => {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
+      <header className="flex flex-col gap-1">
         <StatusPill status={data.status} className="self-start" />
         <PageTitle>
           {data.assetName}
@@ -49,7 +49,7 @@ export const JobDetail = ({ workOrderId }: { workOrderId: string }) => {
         </p>
       </header>
 
-      <section className="flex flex-col gap-2">
+      <section className="flex flex-col gap-3">
         <SubsectionLabel as="h2">
           <ClipboardList className="size-4" />
           Instructions
@@ -69,7 +69,7 @@ export const JobDetail = ({ workOrderId }: { workOrderId: string }) => {
 
       <Separator />
 
-      <section className="flex flex-col gap-2.5">
+      <section className="flex flex-col gap-3">
         <SubsectionLabel>History</SubsectionLabel>
         <Timeline
           items={historyItems(data.history)}

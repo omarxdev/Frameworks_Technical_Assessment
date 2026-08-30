@@ -31,7 +31,7 @@ const surfaces = [
 const Home = () => (
   <main className="bg-brand-surface text-brand-surface-foreground flex min-h-dvh flex-col justify-center px-4 py-16 sm:px-6">
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-10">
-    <header className="flex flex-col gap-3">
+    <header className="flex flex-col gap-1">
       <Eyebrow>Island Media Co</Eyebrow>
       <PageTitle className="text-3xl sm:text-4xl">
         Connected advertising operations

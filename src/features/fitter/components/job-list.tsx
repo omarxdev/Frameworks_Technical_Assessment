@@ -35,7 +35,7 @@ const Section = ({
   pendingFor: (workOrderId: string) => number;
   emptyMessage: string;
 }) => (
-  <section className="flex flex-col gap-2.5">
+  <section className="flex flex-col gap-3">
     <div className="flex items-baseline justify-between gap-2">
       <SubsectionLabel as="h2">{title}</SubsectionLabel>
       {hint && <span className="text-muted-foreground text-xs">{hint}</span>}

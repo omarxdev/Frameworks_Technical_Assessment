@@ -108,9 +108,9 @@ const AttentionList = ({ items }: { items: PortalAttentionItem[] }) => {
   return (
     <section className="flex flex-col gap-3">
       <SectionTitle>Needs your attention</SectionTitle>
-      {ordered.map((item, index) => (
+      {ordered.map((item) => (
         <Callout
-          key={`${item.type}-${item.contractId ?? index}`}
+          key={item.id}
           tone={item.priority === "high" ? "warn" : "info"}
           title={item.title}
         >

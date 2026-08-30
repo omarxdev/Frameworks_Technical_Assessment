@@ -29,7 +29,7 @@ export const UploadQueuePanel = ({
   if (items.length === 0) return null;
 
   return (
-    <section className="flex flex-col gap-2.5">
+    <section className="flex flex-col gap-3">
       <SubsectionLabel>
         <CloudUpload className="size-4" />
         Waiting to upload ({items.length})
@@ -39,7 +39,7 @@ export const UploadQueuePanel = ({
         <div
           key={item.id}
           className={cn(
-            "flex flex-col gap-2 rounded-xl border px-4 py-3",
+            "flex flex-col gap-2 rounded-lg border px-4 py-3",
             item.status === "failed"
               ? "border-stop/25 bg-stop-surface"
               : "border-border bg-card"

@@ -85,7 +85,7 @@ export const AttentionPanel = ({ items }: { items: AttentionItem[] }) => {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       {groups.map(({ priority, entries }) => {
         const meta = priorityMeta[priority];
         const Icon = meta.icon;
@@ -124,7 +124,7 @@ export const AttentionPanel = ({ items }: { items: AttentionItem[] }) => {
                         asChild
                         size="sm"
                         variant="outline"
-                        className="bg-background w-fit gap-1.5"
+                        className="w-fit gap-1.5"
                       >
                         <Link href={href}>
                           {actionLabel(item.type)}

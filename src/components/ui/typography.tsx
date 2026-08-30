@@ -1,20 +1,22 @@
 import { cn } from "@/lib/utils";
 
 export const Eyebrow = ({
+  as: Tag = "span",
   children,
   className,
 }: {
+  as?: "span" | "dt" | "p";
   children: React.ReactNode;
   className?: string;
 }) => (
-  <span
+  <Tag
     className={cn(
       "text-eyebrow text-muted-foreground font-semibold tracking-eyebrow whitespace-nowrap uppercase",
       className
     )}
   >
     {children}
-  </span>
+  </Tag>
 );
 
 export const PageTitle = ({

@@ -21,7 +21,7 @@ export const SessionGuard = ({
     return <LoadingState label="Checking your session" />;
   }
 
-  if (!data?.user) {
+  if (!data?.user || data.user.role !== requiredRole) {
     return <AccessDeniedState requiredRole={requiredRole} surface={surface} />;
   }
 

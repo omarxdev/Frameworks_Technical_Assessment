@@ -6,7 +6,7 @@ import { Callout } from "@/components/ui/states";
 import { BlockerList } from "@/features/management/components/blocker-list";
 import { formatDateRange, formatMoment as formatDateTime } from "@/lib/format";
 import type { AvailabilitySummary } from "@/lib/schemas";
-import { SectionTitle, SubsectionLabel } from "@/components/ui/typography";
+import { Eyebrow, SectionTitle, SubsectionLabel } from "@/components/ui/typography";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface HeadlineMeta {
@@ -105,7 +105,7 @@ export const AvailabilityPanel = ({
           {availability.availableAssetCount !== null &&
             availability.availableAssetCount !== undefined && (
               <div>
-                <dt className="text-muted-foreground text-xs">Assets free</dt>
+                <Eyebrow as="dt" className="whitespace-normal">Assets free</Eyebrow>
                 <dd className="font-medium tabular-nums">
                   {availability.availableAssetCount}
                 </dd>
@@ -114,7 +114,7 @@ export const AvailabilityPanel = ({
           {availability.availableCapacity !== null &&
             availability.availableCapacity !== undefined && (
               <div>
-                <dt className="text-muted-foreground text-xs">Capacity remaining</dt>
+                <Eyebrow as="dt" className="whitespace-normal">Capacity remaining</Eyebrow>
                 <dd className="font-medium tabular-nums">
                   {availability.availableCapacity}
                   {availability.totalCapacity ? ` / ${availability.totalCapacity}` : ""}
@@ -122,7 +122,7 @@ export const AvailabilityPanel = ({
               </div>
             )}
           <div>
-            <dt className="text-muted-foreground text-xs">Freshest verification</dt>
+            <Eyebrow as="dt" className="whitespace-normal">Freshest verification</Eyebrow>
             <dd className="font-medium">
               {availability.freshestVerificationAt
                 ? formatDateTime(availability.freshestVerificationAt)

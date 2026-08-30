@@ -74,7 +74,7 @@ const RequestCard = ({
           value={note}
           onChange={(event) => setNote(event.target.value)}
           placeholder="Explain the outcome so the client understands it."
-          className="bg-background"
+          className="bg-card"
         />
       </div>
 

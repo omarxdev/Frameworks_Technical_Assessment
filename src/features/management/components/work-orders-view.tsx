@@ -18,7 +18,7 @@ import { StatusPill } from "@/components/ui/status-pill";
 import { Callout, EmptyState, LoadingState } from "@/components/ui/states";
 import { useWorkOrders } from "@/features/management/hooks/use-management-data";
 import { formatMoment as formatDateTime } from "@/lib/format";
-import { PageTitle } from "@/components/ui/typography";
+import { Eyebrow, PageTitle } from "@/components/ui/typography";
 import { Card, CardContent } from "@/components/ui/card";
 
 const statusFilters = [
@@ -36,7 +36,7 @@ export const WorkOrdersView = () => {
   const { data, isPending, isError, error, refetch } = useWorkOrders(status);
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <PageTitle>
@@ -127,11 +127,11 @@ export const WorkOrdersView = () => {
 
                     <dl className="grid gap-3 text-sm sm:grid-cols-2">
                       <div>
-                        <dt className="text-muted-foreground text-xs">Assigned fitter</dt>
+                        <Eyebrow as="dt" className="whitespace-normal">Assigned fitter</Eyebrow>
                         <dd className="font-medium">{workOrder.assignedUserName}</dd>
                       </div>
                       <div>
-                        <dt className="text-muted-foreground text-xs">Contract</dt>
+                        <Eyebrow as="dt" className="whitespace-normal">Contract</Eyebrow>
                         <dd className="font-medium">
                           <Link
                             href={`/management/contracts/${workOrder.contractId}`}
@@ -142,13 +142,13 @@ export const WorkOrdersView = () => {
                         </dd>
                       </div>
                       <div>
-                        <dt className="text-muted-foreground text-xs">Scheduled start</dt>
+                        <Eyebrow as="dt" className="whitespace-normal">Scheduled start</Eyebrow>
                         <dd className="font-medium">
                           {formatDateTime(workOrder.scheduledStart)}
                         </dd>
                       </div>
                       <div>
-                        <dt className="text-muted-foreground text-xs">Scheduled end</dt>
+                        <Eyebrow as="dt" className="whitespace-normal">Scheduled end</Eyebrow>
                         <dd className="font-medium">
                           {formatDateTime(workOrder.scheduledEnd)}
                         </dd>
@@ -156,16 +156,16 @@ export const WorkOrdersView = () => {
                     </dl>
 
                     <div>
-                      <p className="text-muted-foreground text-xs">Instructions</p>
+                      <Eyebrow as="p" className="whitespace-normal">Instructions</Eyebrow>
                       <p className="text-sm">{workOrder.instructions}</p>
                     </div>
 
                     {workOrder.internalNotes && (
                       <div className="border-border bg-muted/50 rounded-lg border p-3">
-                        <p className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold uppercase">
+                        <Eyebrow as="p" className="flex items-center gap-1.5 whitespace-normal">
                           <EyeOff className="size-4" />
                           Internal only — never shown to the client or the fitter
-                        </p>
+                        </Eyebrow>
                         <p className="mt-1 text-sm">{workOrder.internalNotes}</p>
                       </div>
                     )}
@@ -178,9 +178,9 @@ export const WorkOrdersView = () => {
 
                     {workOrder.status === "completed" && (
                       <Callout tone="ok" size="sm" subtle className="flex flex-col gap-2">
-                        <p className="text-ok-foreground text-xs font-semibold uppercase">
+                        <Eyebrow as="p" className="text-ok-foreground">
                           Completed
-                        </p>
+                        </Eyebrow>
                         <p className="text-sm">
                           {workOrder.completionNote ?? "No completion note recorded."}
                         </p>

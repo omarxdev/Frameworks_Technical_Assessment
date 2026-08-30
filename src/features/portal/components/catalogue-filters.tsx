@@ -53,7 +53,7 @@ export const CatalogueFilterBar = ({
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-card ring-foreground/10 shadow-card flex flex-col gap-4 rounded-xl p-4 ring-1"
+      className="bg-card ring-foreground/10 shadow-card flex flex-col gap-5 rounded-xl p-4 ring-1"
     >
       <div className="flex items-center gap-2 text-sm font-medium">
         <SlidersHorizontal className="text-primary size-4" />
