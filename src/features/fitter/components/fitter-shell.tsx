@@ -7,10 +7,12 @@ import { RoleSwitcher } from "@/components/shared/role-switcher";
 import { Button } from "@/components/ui/button";
 import { ConnectionBanner } from "@/features/fitter/components/connection-banner";
 import { useProofQueue } from "@/features/fitter/hooks/use-proof-queue";
+import { useServiceWorker } from "@/features/fitter/hooks/use-service-worker";
 
 export const FitterShell = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
   const { isOnline, allPending, isWorking, flush } = useProofQueue();
+  useServiceWorker();
 
   const isDetail = pathname !== "/fitter";
 
