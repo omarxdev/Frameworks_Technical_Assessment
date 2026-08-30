@@ -3,12 +3,19 @@ import type { UserRole } from "@/lib/schemas";
 
 const DEV_FALLBACK_SECRET = "island-media-prototype-development-secret-do-not-ship";
 
+const isStrictlyLocalDevelopment = () =>
+  process.env.NODE_ENV !== "production" &&
+  !process.env.VERCEL_ENV &&
+  !process.env.CI;
+
 const resolveSecret = () => {
   const configured = process.env.JWT_SECRET;
   if (configured && configured.length >= 32) return configured;
 
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("JWT_SECRET must be set to at least 32 characters in production.");
+  if (!isStrictlyLocalDevelopment()) {
+    throw new Error(
+      "JWT_SECRET must be set to at least 32 characters outside strictly local development."
+    );
   }
 
   return DEV_FALLBACK_SECRET;
