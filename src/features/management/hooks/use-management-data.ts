@@ -8,6 +8,8 @@ import type {
   ManagementContractDetail,
   ManagementDashboardResponse,
   ManagementWorkOrderDetail,
+  OrganisationDetail,
+  OrganisationListResponse,
   ProductDetailResponse,
   WorkOrderListResponse,
 } from "@/features/management/lib/types";
@@ -22,6 +24,9 @@ export const managementKeys = {
   workOrders: (status: string) => ["management", "work-orders", status] as const,
   workOrder: (workOrderId: string) =>
     ["management", "work-order", workOrderId] as const,
+  organisations: ["management", "organisations"] as const,
+  organisation: (organisationId: string) =>
+    ["management", "organisation", organisationId] as const,
 };
 
 export const useDashboard = () =>
@@ -89,4 +94,18 @@ export const useWorkOrder = (workOrderId: string) =>
     queryFn: () =>
       apiFetch<ManagementWorkOrderDetail>(`/management/work-orders/${workOrderId}`),
     enabled: Boolean(workOrderId),
+  });
+
+export const useOrganisations = () =>
+  useQuery({
+    queryKey: managementKeys.organisations,
+    queryFn: () => apiFetch<OrganisationListResponse>("/management/organisations"),
+  });
+
+export const useOrganisation = (organisationId: string) =>
+  useQuery({
+    queryKey: managementKeys.organisation(organisationId),
+    queryFn: () =>
+      apiFetch<OrganisationDetail>(`/management/organisations/${organisationId}`),
+    enabled: Boolean(organisationId),
   });

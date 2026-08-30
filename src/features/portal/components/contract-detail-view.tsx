@@ -5,6 +5,8 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Eyebrow } from "@/components/ui/typography";
+import { Metric } from "@/components/ui/metric";
 import { Callout, EmptyState, LoadingState } from "@/components/ui/states";
 import { DataTable } from "@/components/shared/data-table";
 import { StatusPill, humanise } from "@/components/ui/status-pill";
@@ -102,22 +104,22 @@ const ContractContent = ({ contract }: { contract: PortalContractDetail }) => (
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
         <dl className="grid gap-4 sm:grid-cols-4">
+          <Metric
+            as="dl"
+            size="sm"
+            label="Total"
+            value={formatMoney(contract.total)}
+          />
           <div className="flex flex-col gap-0.5">
-            <dt className="text-muted-foreground text-xs uppercase">Total</dt>
-            <dd className="font-heading text-lg font-semibold">
-              {formatMoney(contract.total)}
-            </dd>
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <dt className="text-muted-foreground text-xs uppercase">Issued</dt>
+            <Eyebrow as="dt">Issued</Eyebrow>
             <dd className="text-sm">{formatDate(contract.issuedAt)}</dd>
           </div>
           <div className="flex flex-col gap-0.5">
-            <dt className="text-muted-foreground text-xs uppercase">Accepted</dt>
+            <Eyebrow as="dt">Accepted</Eyebrow>
             <dd className="text-sm">{formatDate(contract.acceptedAt)}</dd>
           </div>
           <div className="flex flex-col gap-0.5">
-            <dt className="text-muted-foreground text-xs uppercase">Activated</dt>
+            <Eyebrow as="dt">Activated</Eyebrow>
             <dd className="text-sm">{formatDate(contract.activatedAt)}</dd>
           </div>
         </dl>

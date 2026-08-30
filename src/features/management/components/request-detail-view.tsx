@@ -12,6 +12,7 @@ import { DraftContractForm } from "@/features/management/components/draft-contra
 import { Timeline, historyItems } from "@/components/shared/timeline";
 import { PageTitle, SectionTitle } from "@/components/ui/typography";
 import { Card, CardContent } from "@/components/ui/card";
+import { DetailRow } from "@/components/shared/detail-row";
 import {
   useBookingRequest,
   useProductAssetOptions,
@@ -22,13 +23,6 @@ import {
   formatMoment as formatDateTime,
   formatMoney,
 } from "@/lib/format";
-
-const DetailRow = ({ label, value }: { label: string; value: React.ReactNode }) => (
-  <div className="border-border flex flex-col gap-0.5 border-b py-2.5 last:border-b-0">
-    <dt className="text-muted-foreground text-xs">{label}</dt>
-    <dd className="text-sm font-medium break-words">{value}</dd>
-  </div>
-);
 
 export const RequestDetailView = ({ requestId }: { requestId: string }) => {
   const { data, isPending, isError, error, refetch } = useBookingRequest(requestId);
@@ -88,7 +82,7 @@ export const RequestDetailView = ({ requestId }: { requestId: string }) => {
               asChild
               size="sm"
               variant="outline"
-              className="bg-background gap-1.5"
+              className="gap-1.5"
             >
               <Link href={`/management/contracts/${data.draftContractId}`}>
                 <FileText className="size-4" />
@@ -138,7 +132,17 @@ export const RequestDetailView = ({ requestId }: { requestId: string }) => {
                 Client and brief
               </SectionTitle>
               <dl>
-                <DetailRow label="Organisation" value={data.organisation.name} />
+                <DetailRow
+                  label="Organisation"
+                  value={
+                    <Link
+                      href={`/management/clients/${data.organisationId}`}
+                      className="underline underline-offset-4"
+                    >
+                      {data.organisation.name}
+                    </Link>
+                  }
+                />
                 <DetailRow
                   label="Contact"
                   value={

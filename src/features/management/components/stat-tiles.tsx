@@ -2,6 +2,7 @@
 
 import { humanise } from "@/components/ui/status-pill";
 import { Card, CardContent } from "@/components/ui/card";
+import { Metric } from "@/components/ui/metric";
 
 const order = [
   "pendingRequests",
@@ -31,14 +32,14 @@ export const StatTiles = ({ counts }: { counts: Record<string, number> }) => {
     <dl className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
       {keys.map((key) => (
         <Card key={key}>
-          <CardContent className="flex flex-col gap-1">
-            <dt className="text-muted-foreground text-xs">
-              {labels[key] ?? humanise(key)}
-            </dt>
-            <dd className="font-heading text-2xl font-semibold tabular-nums">
-              {counts[key]}
-            </dd>
-                  </CardContent>
+          <CardContent>
+            <Metric
+              as="dl"
+              size="lg"
+              label={labels[key] ?? humanise(key)}
+              value={counts[key]}
+            />
+          </CardContent>
         </Card>
       ))}
     </dl>

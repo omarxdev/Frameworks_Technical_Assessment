@@ -18,6 +18,8 @@ import {
 import { useContract } from "@/features/management/hooks/use-management-data";
 import { PageTitle, SectionTitle } from "@/components/ui/typography";
 import { Card, CardContent } from "@/components/ui/card";
+import { DetailRow } from "@/components/shared/detail-row";
+import { MetricValue } from "@/components/ui/metric";
 import {
   formatDateRange,
   formatDay as formatDate,
@@ -66,7 +68,12 @@ export const ContractDetailView = ({ contractId }: { contractId: string }) => {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <PageTitle>
-              {data.organisationName}
+              <Link
+                href={`/management/clients/${data.organisationId}`}
+                className="underline-offset-4 hover:underline"
+              >
+                {data.organisationName}
+              </Link>
             </PageTitle>
             <p className="text-muted-foreground text-sm">
               {data.id} · version {data.version} ·{" "}
@@ -75,9 +82,7 @@ export const ContractDetailView = ({ contractId }: { contractId: string }) => {
           </div>
           <div className="flex items-center gap-2">
             <StatusPill status={data.status} />
-            <span className="font-heading text-xl font-semibold tabular-nums">
-              {formatMoney(data.total, data.currency)}
-            </span>
+            <MetricValue>{formatMoney(data.total, data.currency)}</MetricValue>
           </div>
         </div>
       </div>
@@ -290,7 +295,7 @@ export const ContractDetailView = ({ contractId }: { contractId: string }) => {
                 Contract facts
               </SectionTitle>
               <dl className="flex flex-col">
-                {[
+                {([
                   ["Version", `v${data.version}`],
                   ["Status", data.status],
                   ["Booking request", data.bookingRequestId ?? "—"],
@@ -305,14 +310,8 @@ export const ContractDetailView = ({ contractId }: { contractId: string }) => {
                     "Activated",
                     data.activatedAt ? formatDate(data.activatedAt) : "Not active",
                   ],
-                ].map(([label, value]) => (
-                  <div
-                    key={label}
-                    className="border-border flex flex-col gap-0.5 border-b py-2.5 last:border-b-0"
-                  >
-                    <dt className="text-muted-foreground text-xs">{label}</dt>
-                    <dd className="text-sm font-medium">{value}</dd>
-                  </div>
+                ] satisfies [string, React.ReactNode][]).map(([label, value]) => (
+                  <DetailRow key={label} label={label} value={value} />
                 ))}
               </dl>
                       </CardContent>

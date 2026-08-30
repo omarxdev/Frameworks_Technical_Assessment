@@ -17,7 +17,8 @@ import { useProductDetail } from "@/features/portal/hooks/use-portal-data";
 import { FIXTURE_TODAY, isValidRange } from "@/features/portal/lib/catalogue-options";
 import { formatDateRange, formatDay as formatDate, humaniseKey } from "@/lib/format";
 import type { PortalProductDetail } from "@/features/portal/lib/types";
-import { SubsectionLabel } from "@/components/ui/typography";
+import { Eyebrow, SubsectionLabel } from "@/components/ui/typography";
+import { Metric } from "@/components/ui/metric";
 
 const availabilityTone = {
   available: "ok",
@@ -82,26 +83,21 @@ const ProductDetailContent = ({
             <p className="text-muted-foreground text-sm">{product.description}</p>
 
             <div className="grid gap-4 sm:grid-cols-3">
+              <Metric
+                size="sm"
+                label="Indicative rate"
+                value={product.indicativeRate.label}
+              />
+              <Metric
+                size="sm"
+                label="Minimum term"
+                value={product.minimumTermDays}
+                unit="days"
+              />
               <div className="flex flex-col gap-0.5">
-                <span className="text-muted-foreground text-xs uppercase">
-                  Indicative rate
-                </span>
-                <span className="font-heading text-lg font-semibold">
-                  {product.indicativeRate.label}
-                </span>
-              </div>
-              <div className="flex flex-col gap-0.5">
-                <span className="text-muted-foreground text-xs uppercase">
-                  Minimum term
-                </span>
-                <span className="font-heading text-lg font-semibold">
-                  {product.minimumTermDays} days
-                </span>
-              </div>
-              <div className="flex flex-col gap-0.5">
-                <span className="text-muted-foreground text-xs uppercase">
+                <Eyebrow>
                   Locations
-                </span>
+                </Eyebrow>
                 <span className="flex items-center gap-1.5 text-sm">
                   <MapPin className="size-4 shrink-0" />
                   {product.locationNames.join(", ")}

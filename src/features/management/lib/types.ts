@@ -4,6 +4,7 @@ import type {
   AttentionPriority,
   AvailabilityBlocker,
   AvailabilitySummary,
+  BookingRequest,
   BookingRequestDetail,
   BookingRequestSummary,
   Campaign,
@@ -11,6 +12,7 @@ import type {
   Contract,
   ContractItem,
   HistoryEntry,
+  Organisation,
   ProofRecord,
   ServiceEvent,
   WorkOrder,
@@ -81,6 +83,21 @@ export interface ManagementContractDetail extends Contract {
   proofRecords: ProofRecord[];
   serviceEvents: ServiceEvent[];
   clientRequests: ClientRequest[];
+}
+
+export interface OrganisationSummary extends Organisation {
+  contact: { name: string; email: string } | null;
+  pendingRequestCount: number;
+}
+
+export interface OrganisationListResponse {
+  items: OrganisationSummary[];
+}
+
+export interface OrganisationDetail extends Organisation {
+  contacts: { id: string; name: string; email: string; status: string }[];
+  contracts: Contract[];
+  bookingRequests: BookingRequest[];
 }
 
 export interface ClientRequestDecisionPayload {

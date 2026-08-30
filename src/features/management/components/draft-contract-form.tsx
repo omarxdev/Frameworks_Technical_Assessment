@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { MetricValue } from "@/components/ui/metric";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -167,7 +168,7 @@ export const DraftContractForm = ({
         {items.map((item) => (
           <div
             key={item.key}
-            className="border-border bg-background grid gap-3 rounded-lg border p-4 sm:grid-cols-2 xl:grid-cols-3"
+            className="border-border bg-background grid gap-3 rounded-xl border p-4 sm:grid-cols-2 xl:grid-cols-3"
           >
             <div className="flex flex-col gap-1.5">
               <Label htmlFor={`product-${item.key}`}>Product ID</Label>
@@ -289,9 +290,7 @@ export const DraftContractForm = ({
 
       <div className="border-border bg-background flex flex-wrap items-center justify-between gap-3 rounded-lg border px-4 py-3">
         <span className="text-muted-foreground text-sm">Contract total</span>
-        <span className="font-heading text-xl font-semibold tabular-nums">
-          {formatMoney(total)}
-        </span>
+        <MetricValue>{formatMoney(total)}</MetricValue>
       </div>
 
       {apiError && (

@@ -10,15 +10,9 @@ import { Callout, LoadingState } from "@/components/ui/states";
 import { Timeline, historyItems } from "@/components/shared/timeline";
 import { useWorkOrder } from "@/features/management/hooks/use-management-data";
 import { formatMoment as formatDateTime } from "@/lib/format";
-import { PageTitle, SectionTitle } from "@/components/ui/typography";
+import { Eyebrow, PageTitle, SectionTitle } from "@/components/ui/typography";
 import { Card, CardContent } from "@/components/ui/card";
-
-const DetailRow = ({ label, value }: { label: string; value: React.ReactNode }) => (
-  <div className="border-border flex flex-col gap-0.5 border-b py-2.5 last:border-b-0">
-    <dt className="text-muted-foreground text-xs">{label}</dt>
-    <dd className="text-sm font-medium break-words">{value}</dd>
-  </div>
-);
+import { DetailRow } from "@/components/shared/detail-row";
 
 export const WorkOrderDetailView = ({ workOrderId }: { workOrderId: string }) => {
   const { data, isPending, isError, error, refetch } = useWorkOrder(workOrderId);
@@ -80,10 +74,10 @@ export const WorkOrderDetailView = ({ workOrderId }: { workOrderId: string }) =>
 
               {data.internalNotes && (
                 <div className="border-border bg-muted/50 rounded-lg border p-3">
-                  <p className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold uppercase">
+                  <Eyebrow as="p" className="flex items-center gap-1.5 whitespace-normal">
                     <EyeOff className="size-4" />
                     Internal only — never shown to the client or the fitter
-                  </p>
+                  </Eyebrow>
                   <p className="mt-1 text-sm">{data.internalNotes}</p>
                 </div>
               )}
