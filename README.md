@@ -154,6 +154,22 @@ Full detail in [docs/productionisation-note.md](docs/productionisation-note.md).
    persisted, but there is no service worker. The "simulate poor signal" toggle in the fitter app
    drives the real 503 path so a reviewer can exercise retry on demand.
 
+## Deployment
+
+Deploys to Vercel as a standard Next.js app. Two things must be set before the first deploy:
+
+1. **Environment variables** — `MONGODB_URI` (an Atlas connection string, not `localhost`),
+   `JWT_SECRET` (32+ characters; the app **throws** in production if it is unset rather than
+   falling back), and `NEXT_PUBLIC_APP_URL` set to the deployed URL. The in-memory MongoDB
+   fallback is deliberately disabled in production, so a missing or unreachable `MONGODB_URI`
+   fails the deploy rather than silently serving an empty database.
+2. **Atlas network access** — allow connections from anywhere (`0.0.0.0/0`), since Vercel
+   functions do not have static egress IPs on the lower tiers.
+
+Seed the deployed database once by calling `POST /api/dev/reset` against the deployment. That
+route exists for demo resets and is another thing to delete before any real use.
+
+
 ## Known limitations
 
 - No pagination anywhere. Correct at fixture scale, wrong at real scale.
