@@ -20,7 +20,7 @@ export const FitterShell = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <div className="bg-background flex min-h-dvh flex-col">
-      <header className="border-border bg-background/95 sticky top-0 z-20 border-b backdrop-blur">
+      <header className="border-border bg-card/95 sticky top-0 z-20 border-b backdrop-blur">
         <div className="mx-auto flex w-full max-w-2xl items-center gap-2 px-4 py-2.5">
           {isDetail ? (
             <Button asChild variant="ghost" size="touch" className="-ml-2">
@@ -30,10 +30,13 @@ export const FitterShell = ({ children }: { children: React.ReactNode }) => {
               </Link>
             </Button>
           ) : (
-            <span className="flex items-center gap-2 text-sm font-semibold">
+            <Link
+              href="/"
+              className="focus-visible:ring-ring flex items-center gap-2 rounded-md text-sm font-semibold outline-none focus-visible:ring-2"
+            >
               <HardHat className="text-primary size-4" />
               Island Media Field
-            </span>
+            </Link>
           )}
           <div className="ml-auto">
             <RoleSwitcher />

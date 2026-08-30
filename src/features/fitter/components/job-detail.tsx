@@ -54,7 +54,7 @@ export const JobDetail = ({ workOrderId }: { workOrderId: string }) => {
           <ClipboardList className="size-4" />
           Instructions
         </SubsectionLabel>
-        <p className="bg-card ring-foreground/10 rounded-xl px-4 py-3 text-sm leading-relaxed ring-1">
+        <p className="bg-card ring-foreground/10 shadow-card rounded-xl px-4 py-3 text-sm leading-relaxed ring-1">
           {data.instructions}
         </p>
       </section>

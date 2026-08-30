@@ -17,7 +17,7 @@ export const JobCard = ({
 }) => (
   <Link
     href={`/fitter/jobs/${workOrder.id}`}
-    className="bg-card ring-foreground/10 active:bg-muted focus-visible:ring-ring flex min-h-tap-card items-center gap-3 rounded-xl px-4 py-4 text-left ring-1 transition-colors outline-none focus-visible:ring-2"
+    className="bg-card ring-foreground/10 shadow-card active:bg-muted focus-visible:ring-ring flex min-h-tap-card items-center gap-3 rounded-xl px-4 py-4 text-left ring-1 transition-colors outline-none focus-visible:ring-2"
   >
     <div className="flex min-w-0 flex-1 flex-col gap-1.5">
       <div className="flex flex-wrap items-center gap-2">

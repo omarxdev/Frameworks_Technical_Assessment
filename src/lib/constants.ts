@@ -2,7 +2,7 @@ export const FIXTURE_CLOCK = "2027-01-15T09:00:00Z";
 export const FIXTURE_CLOCK_DATE = new Date(FIXTURE_CLOCK);
 export const DEFAULT_CURRENCY = "GBP";
 
-export const THEME_COLOR = "#1b5e78";
+export const THEME_COLOR = "#214a2e";
 
 export const PROTOTYPE_USERS = {
   MANAGER: "user-manager-01",

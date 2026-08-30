@@ -151,7 +151,7 @@ export const WorkOrderForm = () => {
       <form
         onSubmit={onSubmit}
         noValidate
-        className="bg-card ring-foreground/10 flex max-w-3xl flex-col gap-5 rounded-xl p-4 ring-1"
+        className="bg-card ring-foreground/10 shadow-card flex max-w-3xl flex-col gap-5 rounded-xl p-4 ring-1"
       >
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">

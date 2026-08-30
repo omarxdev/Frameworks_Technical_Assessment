@@ -29,7 +29,8 @@ const surfaces = [
 ];
 
 const Home = () => (
-  <main className="mx-auto flex min-h-dvh max-w-4xl flex-col justify-center gap-10 px-6 py-16">
+  <main className="bg-brand-surface text-brand-surface-foreground flex min-h-dvh flex-col justify-center px-4 py-16 sm:px-6">
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-10">
     <header className="flex flex-col gap-3">
       <Eyebrow>Island Media Co</Eyebrow>
       <PageTitle className="text-3xl sm:text-4xl">
@@ -58,9 +59,10 @@ const Home = () => (
       ))}
     </div>
 
-    <p className="text-muted-foreground text-xs">
+    <p className="text-xs opacity-70">
       Prototype with fictional seeded data. Fixture clock is 15 January 2027.
     </p>
+    </div>
   </main>
 );
 

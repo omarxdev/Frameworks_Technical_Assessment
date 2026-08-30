@@ -40,7 +40,7 @@ export const ProofGallery = ({
       {records.map((record) => (
         <figure
           key={record.id}
-          className="bg-card ring-foreground/10 flex flex-col gap-2 overflow-hidden rounded-xl ring-1"
+          className="bg-card ring-foreground/10 shadow-card flex flex-col gap-2 overflow-hidden rounded-xl ring-1"
         >
           {record.previewUrl ? (
             <img

@@ -10,7 +10,7 @@ const ManagementLayout = ({ children }: { children: React.ReactNode }) => (
       <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:px-6 md:flex-row md:items-center md:justify-between md:gap-6">
         <div className="flex min-w-0 items-center justify-between gap-4">
           <Link
-            href="/management"
+            href="/"
             className="focus-visible:ring-ring flex min-w-0 flex-col rounded-md leading-tight outline-none focus-visible:ring-2"
           >
             <Eyebrow>Island Media Co</Eyebrow>

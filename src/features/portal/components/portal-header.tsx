@@ -25,10 +25,10 @@ export const PortalHeader = () => {
   const shortlistCount = useShortlistCount();
 
   return (
-    <header className="border-border bg-background/95 sticky top-0 z-30 border-b backdrop-blur">
+    <header className="border-border bg-card/95 sticky top-0 z-30 border-b backdrop-blur">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3 sm:px-6">
         <Link
-          href="/portal"
+          href="/"
           className="focus-visible:ring-ring flex items-center gap-2.5 rounded-md outline-none focus-visible:ring-2"
         >
           <span className="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-md">

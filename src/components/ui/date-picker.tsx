@@ -143,7 +143,7 @@ export const DateTimePicker = ({
         value={timePart}
         disabled={disabled}
         onChange={(event) => handleTime(event.target.value)}
-        className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 h-9 w-full shrink-0 rounded-lg border px-3 text-sm outline-none focus-visible:ring-3 disabled:opacity-50 sm:w-32"
+        className="border-input bg-card focus-visible:border-ring focus-visible:ring-ring/50 h-9 w-full shrink-0 rounded-lg border px-3 text-sm outline-none focus-visible:ring-3 disabled:opacity-50 sm:w-32"
       />
     </div>
   );

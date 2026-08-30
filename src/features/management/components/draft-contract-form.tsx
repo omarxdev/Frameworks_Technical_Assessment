@@ -128,7 +128,7 @@ export const DraftContractForm = ({
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-card ring-foreground/10 flex flex-col gap-5 rounded-xl p-4 ring-1"
+      className="bg-card ring-foreground/10 shadow-card flex flex-col gap-5 rounded-xl p-4 ring-1"
     >
       <div>
         <SectionTitle>

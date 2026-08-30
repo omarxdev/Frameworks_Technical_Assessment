@@ -92,7 +92,7 @@ export const CompletionPanel = ({
           Completion record
         </SubsectionLabel>
         {workOrder.completionNote && (
-          <p className="bg-card ring-foreground/10 rounded-xl px-4 py-3 text-sm ring-1">
+          <p className="bg-card ring-foreground/10 shadow-card rounded-xl px-4 py-3 text-sm ring-1">
             {workOrder.completionNote}
           </p>
         )}
