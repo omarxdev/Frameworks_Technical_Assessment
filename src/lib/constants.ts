@@ -4,14 +4,6 @@ export const DEFAULT_CURRENCY = "GBP";
 
 export const THEME_COLOR = "#214a2e";
 
-export const PROTOTYPE_USERS = {
-  MANAGER: "user-manager-01",
-  FITTER: "user-fitter-01",
-  CLIENT_SILVERLINE: "user-client-silverline",
-  CLIENT_LIGHTHOUSE: "user-client-lighthouse",
-  CLIENT_OAKLEGAL: "user-client-oaklegal",
-} as const;
-
 export const PROTOTYPE_USER_PROFILES = [
   {
     id: "user-manager-01",

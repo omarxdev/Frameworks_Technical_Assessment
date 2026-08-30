@@ -101,17 +101,9 @@ export const daysBetween = (start: string, end: string) => {
   return Math.round((to - from) / 86_400_000);
 };
 
-export const toInputDate = (value: string) => value.slice(0, 10);
-
 export const toIsoFromLocalInput = (value: string) => {
   if (!value) return "";
   return value.length === 16 ? `${value}:00Z` : `${value}Z`;
-};
-
-export const toLocalInputFromIso = (value?: string | null) => {
-  const parsed = parse(value);
-  if (!parsed) return "";
-  return parsed.toISOString().slice(0, 16);
 };
 
 export const formatBytes = (bytes: number) =>
@@ -129,8 +121,6 @@ export const CLOCK_DAY_KEY = utcDayKey(FIXTURE_CLOCK_DATE);
 export const isToday = (iso: string) => utcDayKey(iso) === CLOCK_DAY_KEY;
 
 export const isUpcoming = (iso: string) => utcDayKey(iso) > CLOCK_DAY_KEY;
-
-export const isOverdue = (iso: string) => utcDayKey(iso) < CLOCK_DAY_KEY;
 
 export const formatJobWindow = (start: string, end: string) =>
   utcDayKey(start) === utcDayKey(end)

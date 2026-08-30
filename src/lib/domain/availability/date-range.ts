@@ -13,16 +13,6 @@ export const isValidDateRange = (startDateStr: string, endDateStr: string): bool
   );
 };
 
-export const calculateDaysBetween = (
-  startDateStr: string,
-  endDateStr: string
-): number => {
-  const start = parseDate(startDateStr);
-  const end = parseDate(endDateStr);
-  const diffMs = end.getTime() - start.getTime();
-  return Math.max(0, Math.round(diffMs / (1000 * 60 * 60 * 24)));
-};
-
 export const hasHalfOpenOverlap = (
   startA: string | Date,
   endA: string | Date,
