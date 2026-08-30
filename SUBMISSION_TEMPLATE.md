@@ -223,7 +223,7 @@ storage rather than in the database.
 
 | Tool | Contribution | How you verified the output |
 |---|---|---|
-| Claude Code (Opus 5) | Repository analysis, the Next 16 / React 19 / Tailwind 4 upgrade, the security and lifecycle fixes to the API layer, the availability and idempotency domain work, the full test suite, README and productionisation note | `bunx tsc --noEmit`, `bun run test` (58 tests), `bun run build`, plus manual `curl` probes against a seeded database for role enforcement, org isolation, the 409 conflict path and all four idempotency behaviours |
+| Claude Code (Opus 5) | Repository analysis, the Next 16 / React 19 / Tailwind 4 upgrade, the security and lifecycle fixes to the API layer, the availability and idempotency domain work, the full test suite, README and productionisation note | `bunx tsc --noEmit`, `bun run test` (61 tests), `bun run build`, plus manual `curl` probes against a seeded database for role enforcement, org isolation, the 409 conflict path and all four idempotency behaviours |
 | Claude Code subagents (3, parallel) | First-pass implementation of the three UI surfaces from a shared written brief (`docs/ui-build-brief.md`) | Reviewed every file, then re-ran typecheck, the full test suite and a production build; drove each surface in a browser against seeded data |
 
 ## Representative prompts or agent instructions

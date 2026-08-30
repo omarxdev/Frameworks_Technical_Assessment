@@ -258,7 +258,7 @@ const ContractContent = ({ contract }: { contract: PortalContractDetail }) => (
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {contract.serviceEvents.length === 0 ? (
+          {(contract.serviceEvents ?? []).length === 0 ? (
             <EmptyState
               title="No service updates yet"
               message="Artwork, installation and maintenance milestones will appear here."

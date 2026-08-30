@@ -26,6 +26,16 @@ export interface QueueProofInput {
 const offlineMessage =
   "No connection. Proof is saved on this device and will upload automatically.";
 
+const transientMessage =
+  "The upload did not reach the server. Proof is saved on this device — retry when you have a stable signal.";
+
+const failureMessage = (error: unknown) => {
+  if (error instanceof ApiRequestError) return error.message;
+  if (typeof navigator !== "undefined" && !navigator.onLine)
+    return offlineMessage;
+  return transientMessage;
+};
+
 const inFlight = new Set<string>();
 
 export const useProofQueue = (workOrderId?: string) => {
@@ -62,9 +72,7 @@ export const useProofQueue = (workOrderId?: string) => {
         await queryClient.invalidateQueries({ queryKey: workOrderKeys.all });
         return true;
       } catch (error) {
-        const message =
-          error instanceof ApiRequestError ? error.message : offlineMessage;
-        useUploadQueueStore.getState().markFailed(item.id, message);
+        useUploadQueueStore.getState().markFailed(item.id, failureMessage(error));
         return false;
       } finally {
         inFlight.delete(item.id);

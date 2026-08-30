@@ -121,7 +121,7 @@ via the native driver, Vitest with an in-memory MongoDB for tests.
 bun run test
 ```
 
-58 tests across 8 files, covering all ten required checks:
+61 tests across 8 files, covering all ten required checks:
 
 | # | Required check | Where |
 |---|---|---|
