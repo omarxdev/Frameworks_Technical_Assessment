@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/ui/status-pill";
 import { useShortlistCount } from "@/features/portal/hooks/use-shortlist";
 import { Eyebrow } from "@/components/ui/typography";
-import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/portal", label: "Home" },

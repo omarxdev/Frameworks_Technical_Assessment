@@ -9,6 +9,7 @@ const config = [
       "node_modules/**",
       "next-env.d.ts",
       "Frameworks_Technical_Assessment_Candidate_Pack*/**",
+      ".claude/**",
       "__MACOSX/**",
     ],
   },
