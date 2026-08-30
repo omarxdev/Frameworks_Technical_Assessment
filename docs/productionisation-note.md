@@ -5,8 +5,8 @@ that runs a real advertising business.
 
 ## 1. Production architecture
 
-The prototype is a single Next.js app: route handlers under `/api`, a thin domain layer, MongoDB.
-That shape survives to production, with the following changes.
+As built, the prototype is a single Next.js app: route handlers under `/api`, a thin domain layer,
+MongoDB. That shape survives to production, with the following changes.
 
 **Keep the monolith at first.** Three interfaces over one operating model is exactly the case where
 a modular monolith beats services: every graded hand-off in this brief (request → contract →
@@ -48,9 +48,9 @@ expiry sweeps, reconciliation, proof scanning, notification sending — runs on 
 
 ## 2. Data model and source-of-truth boundaries
 
-The prototype deliberately keeps product, physical asset, capacity pool, booking, request, contract,
-campaign, work order, service event and proof record as separate entities. That separation is the
-core of the model and does not change. What changes is where truth lives:
+Product, physical asset, capacity pool, booking, request, contract, campaign, work order, service
+event and proof record are deliberately kept as separate entities in the prototype. That separation
+is the core of the model and does not change. What changes is where truth lives:
 
 | Concern                                           | Source of truth         | Our role                                                           |
 | ------------------------------------------------- | ----------------------- | ------------------------------------------------------------------ |
@@ -60,7 +60,7 @@ core of the model and does not change. What changes is where truth lives:
 | Proof files                                       | Object storage          | Store keys and metadata only, never bytes                          |
 | Contracts, campaigns, work orders, service events | **Us**                  | Full authority                                                     |
 
-The prototype currently stores proof as a base64 data URI inside the work order's related document.
+Today the prototype stores proof as a base64 data URI inside the work order's related document.
 That is the single largest shortcut in the build and is called out below.
 
 Availability is a _derived_ value, never a stored one. It is computed from bookings, active holds and
@@ -69,7 +69,7 @@ the double-booking class of bug the fixtures are designed to catch.
 
 ## 3. Client signup, identity verification and recovery
 
-The prototype creates a user and organisation from a form with no verification, and issues a signed
+Signup today creates a user and organisation from a form with no verification, and issues a signed
 JWT cookie. Production:
 
 - Email/password with Argon2id, or delegate entirely to an IdP (WorkOS/Auth0/Entra) — for a B2B
@@ -87,7 +87,7 @@ JWT cookie. Production:
 
 ## 4. Roles and permissions
 
-The prototype has a role switcher and trusts an `X-Prototype-User-Id` header. **That header is a
+The prototype's role switcher trusts an `X-Prototype-User-Id` header. **That header is a
 deliberate prototype backdoor and must be deleted before any real deployment** — it is the single
 most dangerous line in the repo.
 
