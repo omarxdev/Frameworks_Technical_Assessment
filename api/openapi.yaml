@@ -57,6 +57,44 @@ paths:
                 $ref: "#/components/schemas/Session"
         "404":
           $ref: "#/components/responses/NotFound"
+  /session/current:
+    get:
+      summary: Get the currently resolved prototype session, if any
+      parameters:
+        - $ref: "#/components/parameters/PrototypeUserId"
+      responses:
+        "200":
+          description: Current session (user and organisation are null when unauthenticated)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [user, organisation]
+                properties:
+                  user:
+                    oneOf:
+                      - $ref: "#/components/schemas/User"
+                      - type: "null"
+                  organisation:
+                    oneOf:
+                      - $ref: "#/components/schemas/Organisation"
+                      - type: "null"
+  /session/accounts:
+    get:
+      summary: List seeded prototype accounts for the role switcher
+      responses:
+        "200":
+          description: Selectable prototype accounts
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PrototypeAccount"
   /products:
     get:
       summary: Search the public product catalogue for requested dates
@@ -267,6 +305,47 @@ paths:
                 $ref: "#/components/schemas/ManagementDashboard"
         "403":
           $ref: "#/components/responses/Forbidden"
+  /management/organisations:
+    get:
+      summary: List client organisations with primary contact and pending-request count
+      parameters:
+        - $ref: "#/components/parameters/PrototypeUserId"
+      responses:
+        "200":
+          description: Client organisations, alphabetical by name
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/OrganisationSummary"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /management/organisations/{organisationId}:
+    get:
+      summary: Get one client organisation with contacts, contracts and requests
+      parameters:
+        - $ref: "#/components/parameters/PrototypeUserId"
+        - in: path
+          name: organisationId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Organisation detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganisationDetail"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /management/booking-requests:
     get:
       summary: List requests for management review
@@ -341,6 +420,44 @@ paths:
           $ref: "#/components/responses/Conflict"
         "422":
           $ref: "#/components/responses/ValidationError"
+  /management/client-requests/{clientRequestId}:
+    post:
+      summary: Approve or decline a client-submitted change or cancellation request
+      parameters:
+        - $ref: "#/components/parameters/PrototypeUserId"
+        - in: path
+          name: clientRequestId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClientRequestDecision"
+      responses:
+        "200":
+          description: Updated client request with the resulting contract status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClientRequestDecisionResult"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: >-
+            The request was already decided (ALREADY_DECIDED), or approving it
+            would require a contract transition that isn't valid from the
+            contract's current status (INVALID_TRANSITION)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          $ref: "#/components/responses/ValidationError"
   /management/contracts:
     post:
       summary: Create a draft contract from an approved request
@@ -366,6 +483,27 @@ paths:
           $ref: "#/components/responses/Conflict"
         "422":
           $ref: "#/components/responses/ValidationError"
+  /management/contracts/{contractId}:
+    get:
+      summary: Get a contract with campaign, work orders, service events and requests
+      parameters:
+        - $ref: "#/components/parameters/PrototypeUserId"
+        - in: path
+          name: contractId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Full management-side contract detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ManagementContractDetail"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /management/contracts/{contractId}/issue:
     post:
       summary: Issue a draft contract to its client
@@ -388,7 +526,76 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "409":
           $ref: "#/components/responses/Conflict"
+  /management/contracts/{contractId}/complete:
+    post:
+      summary: Complete a contract once its campaign has run its term
+      parameters:
+        - $ref: "#/components/parameters/PrototypeUserId"
+        - in: path
+          name: contractId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note:
+                  type: [string, "null"]
+      responses:
+        "200":
+          description: Contract marked completed and campaign closed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Contract"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: >-
+            The contract's current status cannot transition to completed
+            (INVALID_TRANSITION), or it still has open work orders
+            (WORK_ORDERS_OPEN)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /management/work-orders:
+    get:
+      summary: List work orders for management, optionally filtered
+      parameters:
+        - $ref: "#/components/parameters/PrototypeUserId"
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [draft, assigned, travelling, on_site, blocked, completed]
+        - in: query
+          name: contractId
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Work orders with lookup references for the management UI
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, references]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ManagementWorkOrderListItem"
+                  references:
+                    $ref: "#/components/schemas/ManagementWorkOrderReferences"
+        "403":
+          $ref: "#/components/responses/Forbidden"
     post:
       summary: Create and assign a campaign work order
       parameters:
@@ -411,6 +618,27 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "422":
           $ref: "#/components/responses/ValidationError"
+  /management/work-orders/{workOrderId}:
+    get:
+      summary: Get one work order with asset, assignee, campaign and history detail
+      parameters:
+        - $ref: "#/components/parameters/PrototypeUserId"
+        - in: path
+          name: workOrderId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Management-side work-order detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ManagementWorkOrderDetail"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /mobile/work-orders:
     get:
       summary: List work orders assigned to the selected fitter
@@ -1139,6 +1367,237 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/WorkOrder"
+    PrototypeAccount:
+      type: object
+      required: [id, name, role, organisationId, organisationName, label, badge, seeded]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+          enum: [client, manager, fitter]
+        organisationId:
+          type: [string, "null"]
+        organisationName:
+          type: [string, "null"]
+        label:
+          type: string
+        badge:
+          type: string
+        seeded:
+          type: boolean
+    OrganisationContact:
+      type: object
+      required: [name, email]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+    OrganisationSummary:
+      allOf:
+        - $ref: "#/components/schemas/Organisation"
+        - type: object
+          required: [contact, pendingRequestCount]
+          properties:
+            contact:
+              oneOf:
+                - $ref: "#/components/schemas/OrganisationContact"
+                - type: "null"
+            pendingRequestCount:
+              type: integer
+              minimum: 0
+    OrganisationDetail:
+      allOf:
+        - $ref: "#/components/schemas/Organisation"
+        - type: object
+          required: [contacts, contracts, bookingRequests]
+          properties:
+            contacts:
+              type: array
+              items:
+                $ref: "#/components/schemas/User"
+            contracts:
+              type: array
+              items:
+                $ref: "#/components/schemas/Contract"
+            bookingRequests:
+              type: array
+              items:
+                $ref: "#/components/schemas/BookingRequest"
+    ClientRequest:
+      type: object
+      required: [id, organisationId, contractId, type, status, createdAt, history]
+      properties:
+        id:
+          type: string
+        organisationId:
+          type: string
+        contractId:
+          type: string
+        type:
+          type: string
+          enum: [contract_change, cancellation]
+        status:
+          type: string
+          enum: [submitted, approved, declined, resolved]
+        createdAt:
+          type: string
+          format: date-time
+        summary:
+          type: [string, "null"]
+        resolvedAt:
+          type: [string, "null"]
+          format: date-time
+        history:
+          type: array
+          items:
+            $ref: "#/components/schemas/HistoryEntry"
+    ClientRequestDecision:
+      type: object
+      required: [action]
+      properties:
+        action:
+          type: string
+          enum: [approve, decline]
+        note:
+          type: [string, "null"]
+    ClientRequestDecisionResult:
+      allOf:
+        - $ref: "#/components/schemas/ClientRequest"
+        - type: object
+          required: [contractStatus]
+          properties:
+            contractStatus:
+              type: string
+              enum:
+                [draft, issued, change_requested, accepted, active, completed, cancelled]
+    ManagementWorkOrderListItem:
+      allOf:
+        - $ref: "#/components/schemas/WorkOrder"
+        - type: object
+          required: [assetName, assignedUserName, proofRecords]
+          properties:
+            assetName:
+              type: string
+            assignedUserName:
+              type: string
+            proofRecords:
+              type: array
+              items:
+                $ref: "#/components/schemas/ProofRecord"
+    ManagementWorkOrderReferences:
+      type: object
+      required: [assets, contracts, campaigns]
+      properties:
+        assets:
+          type: array
+          items:
+            type: object
+            required: [id, name, productId, status]
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+              productId:
+                type: string
+              status:
+                type: string
+        contracts:
+          type: array
+          items:
+            type: object
+            required: [id, status, organisationId, startDate, endDate]
+            properties:
+              id:
+                type: string
+              status:
+                type: string
+              organisationId:
+                type: string
+              startDate:
+                type: string
+                format: date
+              endDate:
+                type: string
+                format: date
+        campaigns:
+          type: array
+          items:
+            type: object
+            required: [id, name, contractId, organisationId, status]
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+              contractId:
+                type: string
+              organisationId:
+                type: string
+              status:
+                type: string
+    ManagementWorkOrderDetail:
+      allOf:
+        - $ref: "#/components/schemas/WorkOrder"
+        - type: object
+          required: [assetName, assignedUserName, organisationName, serviceEvents]
+          properties:
+            assetName:
+              type: string
+            assignedUserName:
+              type: string
+            organisationName:
+              type: string
+            campaignName:
+              type: [string, "null"]
+            proofRecords:
+              type: array
+              items:
+                $ref: "#/components/schemas/ProofRecord"
+            serviceEvents:
+              type: array
+              items:
+                $ref: "#/components/schemas/ServiceEvent"
+    ManagementContractDetail:
+      allOf:
+        - $ref: "#/components/schemas/Contract"
+        - type: object
+          required:
+            [organisationName, campaign, workOrders, proofRecords, serviceEvents, clientRequests]
+          properties:
+            organisationName:
+              type: string
+            campaign:
+              type: [object, "null"]
+              additionalProperties: true
+            workOrders:
+              type: array
+              items:
+                allOf:
+                  - $ref: "#/components/schemas/WorkOrder"
+                  - type: object
+                    properties:
+                      proofRecords:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/ProofRecord"
+            proofRecords:
+              type: array
+              items:
+                $ref: "#/components/schemas/ProofRecord"
+            serviceEvents:
+              type: array
+              items:
+                $ref: "#/components/schemas/ServiceEvent"
+            clientRequests:
+              type: array
+              items:
+                $ref: "#/components/schemas/ClientRequest"
     Error:
       type: object
       required: [code, message]
