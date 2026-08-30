@@ -4,7 +4,8 @@ import { collections } from "@/lib/db/collections";
 import { ClientRequestDecisionSchema } from "@/lib/schemas";
 import { canTransitionContract } from "@/lib/domain/contracts/state-machine";
 import { FIXTURE_CLOCK } from "@/lib/constants";
-import { newServiceEventId } from "@/lib/ids";
+import { newServiceEventId } from "@/lib/db/ids";
+import { notFound, validationError } from "@/lib/api/responses";
 import type { ClientRequest, ClientRequestStatus } from "@/lib/schemas";
 
 export const POST = async (
@@ -22,13 +23,7 @@ export const POST = async (
     });
 
     if (!clientRequest) {
-      return NextResponse.json(
-        {
-          code: "NOT_FOUND",
-          message: `Client request '${clientRequestId}' not found`,
-        },
-        { status: 404 }
-      );
+      return notFound(`Client request '${clientRequestId}' not found`);
     }
 
     if (clientRequest.status !== "submitted") {
@@ -44,14 +39,7 @@ export const POST = async (
     const body = await req.json();
     const parsed = ClientRequestDecisionSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json(
-        {
-          code: "VALIDATION_ERROR",
-          message: "Invalid client request decision",
-          details: parsed.error.flatten(),
-        },
-        { status: 422 }
-      );
+      return validationError("Invalid client request decision", parsed.error.flatten());
     }
 
     const { action, note } = parsed.data;
@@ -62,13 +50,7 @@ export const POST = async (
     });
 
     if (!contract) {
-      return NextResponse.json(
-        {
-          code: "NOT_FOUND",
-          message: `Contract '${clientRequest.contractId}' not found`,
-        },
-        { status: 404 }
-      );
+      return notFound(`Contract '${clientRequest.contractId}' not found`);
     }
 
     const decisionStatus: ClientRequestStatus =

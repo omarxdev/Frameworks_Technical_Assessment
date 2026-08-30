@@ -3,7 +3,8 @@ import { requireRole } from "@/lib/auth/session";
 import { collections } from "@/lib/db/collections";
 import { canTransitionContract } from "@/lib/domain/contracts/state-machine";
 import { FIXTURE_CLOCK } from "@/lib/constants";
-import { newCampaignId, newServiceEventId } from "@/lib/ids";
+import { newCampaignId, newServiceEventId } from "@/lib/db/ids";
+import { notFound } from "@/lib/api/responses";
 
 export const POST = async (
   req: NextRequest,
@@ -18,10 +19,7 @@ export const POST = async (
     const contract = await contractsCol.findOne({ id: contractId });
 
     if (!contract) {
-      return NextResponse.json(
-        { code: "NOT_FOUND", message: `Contract '${contractId}' not found` },
-        { status: 404 }
-      );
+      return notFound(`Contract '${contractId}' not found`);
     }
 
     if (!canTransitionContract(contract.status, "issued")) {

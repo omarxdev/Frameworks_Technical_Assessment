@@ -73,6 +73,7 @@ src/
   features/       per-surface components and hooks
   lib/
     domain/       business rules, no framework or database imports
+    api/          idempotency and other route-handler helpers
     db/           MongoDB access and deterministic seeding
     auth/         session resolution and role guards
     schemas/      Zod schemas — the single source of truth for types
@@ -84,8 +85,9 @@ tests/
 ```
 
 The rule that keeps this maintainable: `lib/domain` holds the business rules and imports nothing from
-Next.js or MongoDB, so availability, state machines and idempotency are testable without a server and
-extractable later. Route handlers orchestrate; `features/` renders.
+Next.js or MongoDB, so availability and the state machines are testable without a server and
+extractable later. Helpers that do need the framework, such as idempotency, live in `lib/api` instead.
+Route handlers orchestrate; `features/` renders.
 
 Zod schemas in `lib/schemas` are the single source of truth. Types come from `z.infer`, the API
 validates against them, and forms use the same schemas through `zodResolver`.
@@ -111,7 +113,10 @@ via the native driver, Vitest with an in-memory MongoDB for tests.
 - **Stale verification** is derived from `verifiedAt` being more than 30 days before the fixture
   clock, which surfaces both stale fixture assets rather than only the one carrying a note.
 - **Idempotency** is scoped to `(endpoint, actor, key)`. The same key with the same body replays the
-  stored response; the same key with a different body returns 409.
+  stored response; the same key with a _different_ body returns 409 rather than replaying the original.
+  The brief can be read as "return the existing record" in that case, but silently ignoring changed
+  dates would confirm something the client did not ask for, so this follows the Stripe convention and
+  makes the mismatch explicit. A new key always creates a new request.
 - **Client visibility**: `internalNotes` and non-`clientVisible` service events never reach a client
   payload, and the connected-journey test asserts it.
 
@@ -121,20 +126,20 @@ via the native driver, Vitest with an in-memory MongoDB for tests.
 bun run test
 ```
 
-61 tests across 8 files, covering all ten required checks:
+78 tests across 8 files, covering all ten required checks:
 
-| #   | Required check                             | Where                                 |
-| --- | ------------------------------------------ | ------------------------------------- |
-| 1   | Overlapping exclusive-asset bookings       | `tests/domain/exclusiveAsset.test.ts` |
-| 2   | Expired versus active holds                | `tests/domain/capacityPool.test.ts`   |
-| 3   | Capacity-pool availability                 | `tests/domain/capacityPool.test.ts`   |
-| 4   | Duplicate idempotency key                  | `tests/api/booking-requests.test.ts`  |
-| 5   | No-contract client can use the catalogue   | `tests/api/booking-requests.test.ts`  |
-| 6   | Contract issue, acceptance, change request | `tests/api/contracts.test.ts`         |
-| 7   | Blocked work order requires a reason       | `tests/api/work-orders.test.ts`       |
-| 8   | Completion requires proof, updates history | `tests/api/work-orders.test.ts`       |
-| 9   | Organisation A cannot read B's contract    | `tests/api/contracts.test.ts`         |
-| 10  | One connected journey                      | `tests/e2e/connected-journey.test.ts` |
+| #   | Required check                             | Where                                  |
+| --- | ------------------------------------------ | -------------------------------------- |
+| 1   | Overlapping exclusive-asset bookings       | `tests/domain/exclusive-asset.test.ts` |
+| 2   | Expired versus active holds                | `tests/domain/capacity-pool.test.ts`   |
+| 3   | Capacity-pool availability                 | `tests/domain/capacity-pool.test.ts`   |
+| 4   | Duplicate idempotency key                  | `tests/api/booking-requests.test.ts`   |
+| 5   | No-contract client can use the catalogue   | `tests/api/booking-requests.test.ts`   |
+| 6   | Contract issue, acceptance, change request | `tests/api/contracts.test.ts`          |
+| 7   | Blocked work order requires a reason       | `tests/api/work-orders.test.ts`        |
+| 8   | Completion requires proof, updates history | `tests/api/work-orders.test.ts`        |
+| 9   | Organisation A cannot read B's contract    | `tests/api/contracts.test.ts`          |
+| 10  | One connected journey                      | `tests/e2e/connected-journey.test.ts`  |
 
 Tests run against an in-memory MongoDB, so no running database is required.
 

@@ -7,10 +7,11 @@ import {
   readIdempotencyKey,
   validateIdempotencyKey,
   withIdempotency,
-} from "@/lib/domain/idempotency";
+} from "@/lib/api/idempotency";
 import { isValidDateRange } from "@/lib/domain/availability/date-range";
 import { FIXTURE_CLOCK } from "@/lib/constants";
-import { newRequestId } from "@/lib/ids";
+import { newRequestId } from "@/lib/db/ids";
+import { notFound, validationError } from "@/lib/api/responses";
 
 export const POST = async (req: NextRequest) => {
   try {
@@ -25,35 +26,19 @@ export const POST = async (req: NextRequest) => {
     const body = await req.json();
     const parsed = BookingRequestCreateSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json(
-        {
-          code: "VALIDATION_ERROR",
-          message: "Invalid booking request parameters",
-          details: parsed.error.flatten(),
-        },
-        { status: 422 }
-      );
+      return validationError("Invalid booking request parameters", parsed.error.flatten());
     }
 
     const data = parsed.data;
 
     if (!isValidDateRange(data.startDate, data.endDate)) {
-      return NextResponse.json(
-        {
-          code: "VALIDATION_ERROR",
-          message: "startDate must be strictly before endDate",
-        },
-        { status: 422 }
-      );
+      return validationError("startDate must be strictly before endDate");
     }
 
     const productsCol = await collections.products();
     const product = await productsCol.findOne({ id: data.productId });
     if (!product) {
-      return NextResponse.json(
-        { code: "NOT_FOUND", message: `Product '${data.productId}' not found` },
-        { status: 404 }
-      );
+      return notFound(`Product '${data.productId}' not found`);
     }
 
     const idempotency = await withIdempotency({

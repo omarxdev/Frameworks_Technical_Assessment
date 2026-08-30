@@ -8,6 +8,7 @@ import {
   loadInventory,
 } from "@/lib/domain/availability/recheck";
 import { FIXTURE_CLOCK } from "@/lib/constants";
+import { notFound, validationError } from "@/lib/api/responses";
 
 export const GET = async (
   req: NextRequest,
@@ -22,10 +23,7 @@ export const GET = async (
     const request = await requestsCol.findOne({ id: requestId });
 
     if (!request) {
-      return NextResponse.json(
-        { code: "NOT_FOUND", message: `Booking request '${requestId}' not found` },
-        { status: 404 }
-      );
+      return notFound(`Booking request '${requestId}' not found`);
     }
 
     const [inventory, orgsDocs, mediaOwnersDocs, locationsDocs] = await Promise.all([
@@ -39,10 +37,7 @@ export const GET = async (
     const org = orgsDocs.find((o) => o.id === request.organisationId);
 
     if (!product) {
-      return NextResponse.json(
-        { code: "NOT_FOUND", message: `Product '${request.productId}' not found` },
-        { status: 404 }
-      );
+      return notFound(`Product '${request.productId}' not found`);
     }
 
     const mediaOwnersMap = new Map(mediaOwnersDocs.map((mo) => [mo.id, mo.name]));
@@ -106,23 +101,13 @@ export const PATCH = async (
     const request = await requestsCol.findOne({ id: requestId });
 
     if (!request) {
-      return NextResponse.json(
-        { code: "NOT_FOUND", message: `Booking request '${requestId}' not found` },
-        { status: 404 }
-      );
+      return notFound(`Booking request '${requestId}' not found`);
     }
 
     const body = await req.json();
     const parseResult = ManagementDecisionSchema.safeParse(body);
     if (!parseResult.success) {
-      return NextResponse.json(
-        {
-          code: "VALIDATION_ERROR",
-          message: "Invalid management decision",
-          details: parseResult.error.flatten(),
-        },
-        { status: 422 }
-      );
+      return validationError("Invalid management decision", parseResult.error.flatten());
     }
 
     const { action, note, selectedAssetId } = parseResult.data;

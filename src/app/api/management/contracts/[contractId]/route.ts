@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth/session";
 import { collections } from "@/lib/db/collections";
+import { notFound } from "@/lib/api/responses";
 
 export const GET = async (
   req: NextRequest,
@@ -15,10 +16,7 @@ export const GET = async (
     const contract = await contractsCol.findOne({ id: contractId });
 
     if (!contract) {
-      return NextResponse.json(
-        { code: "NOT_FOUND", message: `Contract '${contractId}' not found` },
-        { status: 404 }
-      );
+      return notFound(`Contract '${contractId}' not found`);
     }
 
     const [orgDoc, campaignDoc, workOrderDocs, serviceEventDocs, clientRequestDocs] =

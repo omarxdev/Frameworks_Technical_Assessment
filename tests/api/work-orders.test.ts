@@ -3,6 +3,7 @@ import { GET as getWorkOrderDetail } from "@/app/api/mobile/work-orders/[workOrd
 import { GET as listWorkOrders } from "@/app/api/mobile/work-orders/route";
 import { POST as updateStatus } from "@/app/api/mobile/work-orders/[workOrderId]/status/route";
 import { POST as uploadProof } from "@/app/api/mobile/work-orders/[workOrderId]/proof/route";
+import { POST as createWorkOrder } from "@/app/api/management/work-orders/route";
 import {
   getWorkOrder,
   makeProofForm,
@@ -232,5 +233,84 @@ describe("Work-order transitions and scoping", () => {
     );
 
     expect(result.status).toBe(403);
+  });
+});
+
+describe("Work-order scheduling window", () => {
+  it("rejects a scheduled window that ends before it starts", async () => {
+    const result = await readJson(
+      await createWorkOrder(
+        makeRequest("/management/work-orders", {
+          method: "POST",
+          as: USERS.manager,
+          idempotencyKey: "wo-inverted-window",
+          body: {
+            campaignId: "campaign-002",
+            contractId: "contract-002",
+            type: "installation",
+            assignedUserId: USERS.fitter,
+            assetId: "asset-van-12",
+            scheduledStart: "2027-03-20T14:00:00Z",
+            scheduledEnd: "2027-03-20T09:00:00Z",
+            locationLabel: "Depot",
+            instructions: "Refit the rear panel.",
+          },
+        })
+      )
+    );
+
+    expect(result.status).toBe(422);
+    expect(result.body.code).toBe("VALIDATION_ERROR");
+  });
+
+  it("rejects a zero-length scheduled window", async () => {
+    const result = await readJson(
+      await createWorkOrder(
+        makeRequest("/management/work-orders", {
+          method: "POST",
+          as: USERS.manager,
+          idempotencyKey: "wo-zero-window",
+          body: {
+            campaignId: "campaign-002",
+            contractId: "contract-002",
+            type: "installation",
+            assignedUserId: USERS.fitter,
+            assetId: "asset-van-12",
+            scheduledStart: "2027-03-20T09:00:00Z",
+            scheduledEnd: "2027-03-20T09:00:00Z",
+            locationLabel: "Depot",
+            instructions: "Refit the rear panel.",
+          },
+        })
+      )
+    );
+
+    expect(result.status).toBe(422);
+  });
+
+  it("accepts a valid scheduled window", async () => {
+    const result = await readJson(
+      await createWorkOrder(
+        makeRequest("/management/work-orders", {
+          method: "POST",
+          as: USERS.manager,
+          idempotencyKey: "wo-valid-window",
+          body: {
+            campaignId: "campaign-002",
+            contractId: "contract-002",
+            type: "installation",
+            assignedUserId: USERS.fitter,
+            assetId: "asset-van-12",
+            scheduledStart: "2027-03-20T09:00:00Z",
+            scheduledEnd: "2027-03-20T14:00:00Z",
+            locationLabel: "Depot",
+            instructions: "Refit the rear panel.",
+          },
+        })
+      )
+    );
+
+    expect(result.status).toBe(201);
+    expect(result.body.status).toBe("assigned");
   });
 });

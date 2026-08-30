@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { collections } from "@/lib/db/collections";
 import { describeAvailability, loadInventory } from "@/lib/domain/availability/recheck";
 import { isValidDateRange } from "@/lib/domain/availability/date-range";
+import { notFound, validationError } from "@/lib/api/responses";
 
 export const GET = async (
   req: NextRequest,
@@ -14,24 +15,13 @@ export const GET = async (
     const endDate = searchParams.get("endDate");
 
     if (!startDate || !endDate) {
-      return NextResponse.json(
-        {
-          code: "VALIDATION_ERROR",
-          message:
-            "Both startDate and endDate query parameters are required (YYYY-MM-DD)",
-        },
-        { status: 422 }
+      return validationError(
+        "Both startDate and endDate query parameters are required (YYYY-MM-DD)"
       );
     }
 
     if (!isValidDateRange(startDate, endDate)) {
-      return NextResponse.json(
-        {
-          code: "VALIDATION_ERROR",
-          message: "Invalid date range: startDate must be strictly before endDate",
-        },
-        { status: 422 }
-      );
+      return validationError("Invalid date range: startDate must be strictly before endDate");
     }
 
     const [inventory, mediaOwnersDocs, locationsDocs] = await Promise.all([
@@ -43,10 +33,7 @@ export const GET = async (
     const product = inventory.products.find((p) => p.id === productId);
 
     if (!product) {
-      return NextResponse.json(
-        { code: "NOT_FOUND", message: `Product '${productId}' not found` },
-        { status: 404 }
-      );
+      return notFound(`Product '${productId}' not found`);
     }
 
     const locationsMap = new Map(locationsDocs.map((loc) => [loc.id, loc.name]));

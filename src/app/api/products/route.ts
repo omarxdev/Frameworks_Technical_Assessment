@@ -3,6 +3,7 @@ import { collections } from "@/lib/db/collections";
 import { ProductSearchQuerySchema } from "@/lib/schemas";
 import { describeAvailability, loadInventory } from "@/lib/domain/availability/recheck";
 import { isValidDateRange } from "@/lib/domain/availability/date-range";
+import { validationError } from "@/lib/api/responses";
 
 export const GET = async (req: NextRequest) => {
   try {
@@ -14,24 +15,13 @@ export const GET = async (req: NextRequest) => {
     const maxMonthlyBudgetStr = searchParams.get("maxMonthlyBudget");
 
     if (!startDate || !endDate) {
-      return NextResponse.json(
-        {
-          code: "VALIDATION_ERROR",
-          message:
-            "Both startDate and endDate query parameters are required (format YYYY-MM-DD)",
-        },
-        { status: 422 }
+      return validationError(
+        "Both startDate and endDate query parameters are required (format YYYY-MM-DD)"
       );
     }
 
     if (!isValidDateRange(startDate, endDate)) {
-      return NextResponse.json(
-        {
-          code: "VALIDATION_ERROR",
-          message: "Invalid date range: startDate must be strictly before endDate",
-        },
-        { status: 422 }
-      );
+      return validationError("Invalid date range: startDate must be strictly before endDate");
     }
 
     const maxMonthlyBudget = maxMonthlyBudgetStr
@@ -47,14 +37,7 @@ export const GET = async (req: NextRequest) => {
     });
 
     if (!queryParse.success) {
-      return NextResponse.json(
-        {
-          code: "VALIDATION_ERROR",
-          message: "Invalid search parameters",
-          details: queryParse.error.flatten(),
-        },
-        { status: 422 }
-      );
+      return validationError("Invalid search parameters", queryParse.error.flatten());
     }
 
     const [inventory, mediaOwnersDocs, locationsDocs] = await Promise.all([

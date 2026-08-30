@@ -3,9 +3,10 @@ import { RegisterInputSchema } from "@/lib/schemas";
 import { collections } from "@/lib/db/collections";
 import { signSessionToken } from "@/lib/auth/jwt";
 import { SESSION_COOKIE } from "@/lib/auth/session";
-import { readIdempotencyKey, withIdempotency } from "@/lib/domain/idempotency";
+import { readIdempotencyKey, withIdempotency } from "@/lib/api/idempotency";
 import { FIXTURE_CLOCK } from "@/lib/constants";
-import { newOrganisationId, newUserId } from "@/lib/ids";
+import { newOrganisationId, newUserId } from "@/lib/db/ids";
+import { validationError } from "@/lib/api/responses";
 
 const SESSION_MAX_AGE = 60 * 60 * 24 * 7;
 
@@ -35,14 +36,7 @@ export const POST = async (req: NextRequest) => {
     const body = await req.json();
     const parsed = RegisterInputSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json(
-        {
-          code: "VALIDATION_ERROR",
-          message: "Registration validation failed",
-          details: parsed.error.flatten(),
-        },
-        { status: 422 }
-      );
+      return validationError("Registration validation failed", parsed.error.flatten());
     }
 
     const { organisationName, contactName, email } = parsed.data;

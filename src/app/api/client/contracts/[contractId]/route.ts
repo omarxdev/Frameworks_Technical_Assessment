@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireClientOrganisation } from "@/lib/auth/session";
+import { forbidden, requireClientOrganisation } from "@/lib/auth/session";
 import { collections } from "@/lib/db/collections";
+import { notFound } from "@/lib/api/responses";
 
 export const GET = async (
   req: NextRequest,
@@ -17,17 +18,11 @@ export const GET = async (
     const contract = await contractsCol.findOne({ id: contractId });
 
     if (!contract) {
-      return NextResponse.json(
-        { code: "NOT_FOUND", message: `Contract '${contractId}' not found` },
-        { status: 404 }
-      );
+      return notFound(`Contract '${contractId}' not found`);
     }
 
     if (contract.organisationId !== auth.organisation.id) {
-      return NextResponse.json(
-        { code: "FORBIDDEN", message: "You cannot access this organisation's record." },
-        { status: 403 }
-      );
+      return forbidden("You cannot access this organisation's record.");
     }
 
     const campaignsCol = await collections.campaigns();
@@ -42,10 +37,12 @@ export const GET = async (
     const proofRecordsCol = await collections.proofRecords();
     const workOrdersCol = await collections.workOrders();
     const relatedWorkOrders = await workOrdersCol.find({ contractId }).toArray();
-    const workOrderIds = relatedWorkOrders.map((wo) => wo.id);
+    const completedWorkOrderIds = relatedWorkOrders
+      .filter((wo) => wo.status === "completed")
+      .map((wo) => wo.id);
 
     const proofRecords = await proofRecordsCol
-      .find({ workOrderId: { $in: workOrderIds } })
+      .find({ workOrderId: { $in: completedWorkOrderIds } })
       .toArray();
 
     const clientRequestsCol = await collections.clientRequests();

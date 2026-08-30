@@ -8,9 +8,10 @@ import {
   readIdempotencyKey,
   validateIdempotencyKey,
   withIdempotency,
-} from "@/lib/domain/idempotency";
+} from "@/lib/api/idempotency";
 import { FIXTURE_CLOCK } from "@/lib/constants";
-import { newServiceEventId } from "@/lib/ids";
+import { newServiceEventId } from "@/lib/db/ids";
+import { notFound, validationError } from "@/lib/api/responses";
 
 const clientSummaryFor = (status: string, assetName: string) => {
   if (status === "travelling") return `An engineer is on the way to ${assetName}.`;
@@ -35,10 +36,7 @@ export const POST = async (
     const workOrder = await workOrdersCol.findOne({ id: workOrderId });
 
     if (!workOrder) {
-      return NextResponse.json(
-        { code: "NOT_FOUND", message: `Work order '${workOrderId}' not found` },
-        { status: 404 }
-      );
+      return notFound(`Work order '${workOrderId}' not found`);
     }
 
     if (guard.user.role === "fitter" && workOrder.assignedUserId !== guard.user.id) {
@@ -48,14 +46,7 @@ export const POST = async (
     const body = await req.json();
     const parsed = WorkOrderStatusUpdateSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json(
-        {
-          code: "VALIDATION_ERROR",
-          message: "Invalid work order status update",
-          details: parsed.error.flatten(),
-        },
-        { status: 422 }
-      );
+      return validationError("Invalid work order status update", parsed.error.flatten());
     }
 
     const idempotency = await withIdempotency({

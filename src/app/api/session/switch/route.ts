@@ -3,6 +3,7 @@ import { collections } from "@/lib/db/collections";
 import { signSessionToken } from "@/lib/auth/jwt";
 import { SESSION_COOKIE } from "@/lib/auth/session";
 import type { User, Organisation } from "@/lib/schemas";
+import { notFound, validationError } from "@/lib/api/responses";
 
 const SESSION_MAX_AGE = 60 * 60 * 24 * 7;
 
@@ -12,20 +13,14 @@ export const POST = async (req: NextRequest) => {
     const { userId } = body;
 
     if (!userId || typeof userId !== "string") {
-      return NextResponse.json(
-        { code: "VALIDATION_ERROR", message: "userId string is required" },
-        { status: 422 }
-      );
+      return validationError("userId string is required");
     }
 
     const usersCol = await collections.users();
     const userDoc = await usersCol.findOne({ id: userId });
 
     if (!userDoc) {
-      return NextResponse.json(
-        { code: "NOT_FOUND", message: `User '${userId}' not found` },
-        { status: 404 }
-      );
+      return notFound(`User '${userId}' not found`);
     }
 
     const { _id, ...userData } = userDoc;

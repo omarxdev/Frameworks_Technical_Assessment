@@ -105,6 +105,7 @@ export const useContractAction = (contractId: string) => {
       apiFetch<PortalContractDetail>(`/client/contracts/${contractId}/actions`, {
         method: "POST",
         body: note?.trim() ? { action, note: note.trim() } : { action },
+        idempotencyKey: newIdempotencyKey(),
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: portalKeys.contract(contractId) });

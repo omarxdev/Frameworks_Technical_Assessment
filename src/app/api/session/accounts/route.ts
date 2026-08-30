@@ -1,15 +1,25 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { collections } from "@/lib/db/collections";
 import { PROTOTYPE_USER_PROFILES } from "@/lib/constants";
+import { resolveAuth } from "@/lib/auth/session";
 
 const seededBadges = new Map<string, string>(
   PROTOTYPE_USER_PROFILES.map((profile) => [profile.id, profile.badge])
 );
 
-export const GET = async () => {
+const seededIds: string[] = PROTOTYPE_USER_PROFILES.map((profile) => profile.id);
+
+export const GET = async (req: NextRequest) => {
   try {
+    const { user: currentUser } = await resolveAuth(req);
+
+    const idsToShow =
+      currentUser && !seededIds.includes(currentUser.id)
+        ? [...seededIds, currentUser.id]
+        : seededIds;
+
     const [usersDocs, orgsDocs, contractsDocs] = await Promise.all([
-      (await collections.users()).find({}).toArray(),
+      (await collections.users()).find({ id: { $in: idsToShow } }).toArray(),
       (await collections.organisations()).find({}).toArray(),
       (await collections.contracts()).find({}).toArray(),
     ]);

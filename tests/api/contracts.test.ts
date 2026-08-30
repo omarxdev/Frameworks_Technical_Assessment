@@ -10,12 +10,16 @@ import {
   clientRequestsFor,
   getCampaign,
   getContract,
+  insertServiceEvent,
   makeRequest,
   readJson,
   reseed,
   serviceEventsFor,
   USERS,
 } from "../helpers/harness";
+
+let idempotencyCounter = 0;
+const nextIdempotencyKey = () => `test-idem-key-${++idempotencyCounter}`;
 
 const contractParams = (contractId: string) => ({
   params: Promise.resolve({ contractId }),
@@ -35,6 +39,7 @@ const acceptContract = (contractId: string, as: string) =>
       method: "POST",
       as,
       body: { action: "accept" },
+      idempotencyKey: nextIdempotencyKey(),
     }),
     contractParams(contractId)
   );
@@ -45,6 +50,7 @@ const raiseCancellation = async (contractId: string, as: string) => {
       method: "POST",
       as,
       body: { action: "request_cancellation", note: "Budget was reallocated." },
+      idempotencyKey: nextIdempotencyKey(),
     }),
     contractParams(contractId)
   );
@@ -89,6 +95,7 @@ describe("Required check 9: cross-organisation isolation", () => {
           method: "POST",
           as: USERS.oakLegal,
           body: { action: "accept" },
+          idempotencyKey: nextIdempotencyKey(),
         }),
         contractParams("contract-001")
       )
@@ -120,6 +127,7 @@ describe("Required check 6: contract issue, acceptance and change request", () =
           method: "POST",
           as: USERS.lighthouse,
           body: { action: "accept" },
+          idempotencyKey: nextIdempotencyKey(),
         }),
         contractParams("contract-001")
       )
@@ -152,6 +160,7 @@ describe("Required check 6: contract issue, acceptance and change request", () =
             action: "request_changes",
             note: "Please move the start date to March.",
           },
+          idempotencyKey: nextIdempotencyKey(),
         }),
         contractParams("contract-001")
       )
@@ -176,6 +185,7 @@ describe("Required check 6: contract issue, acceptance and change request", () =
           method: "POST",
           as: USERS.lighthouse,
           body: { action: "request_changes" },
+          idempotencyKey: nextIdempotencyKey(),
         }),
         contractParams("contract-001")
       )
@@ -190,6 +200,7 @@ describe("Required check 6: contract issue, acceptance and change request", () =
         method: "POST",
         as: USERS.lighthouse,
         body: { action: "request_changes", note: "Shift the dates." },
+        idempotencyKey: nextIdempotencyKey(),
       }),
       contractParams("contract-001")
     );
@@ -215,6 +226,7 @@ describe("Required check 6: contract issue, acceptance and change request", () =
         method: "POST",
         as: USERS.lighthouse,
         body: { action: "accept" },
+        idempotencyKey: nextIdempotencyKey(),
       }),
       contractParams("contract-001")
     );
@@ -225,6 +237,7 @@ describe("Required check 6: contract issue, acceptance and change request", () =
           method: "POST",
           as: USERS.lighthouse,
           body: { action: "accept" },
+          idempotencyKey: nextIdempotencyKey(),
         }),
         contractParams("contract-001")
       )
@@ -243,6 +256,7 @@ describe("Required check 6: contract issue, acceptance and change request", () =
             action: "request_cancellation",
             note: "Budget was reallocated.",
           },
+          idempotencyKey: nextIdempotencyKey(),
         }),
         contractParams("contract-002")
       )
@@ -380,6 +394,7 @@ describe("Management closes the client change and cancellation loop", () => {
         method: "POST",
         as: USERS.lighthouse,
         body: { action: "request_changes", note: "Please move the start date." },
+        idempotencyKey: nextIdempotencyKey(),
       }),
       contractParams("contract-001")
     );
@@ -411,6 +426,7 @@ describe("Management closes the client change and cancellation loop", () => {
         method: "POST",
         as: USERS.lighthouse,
         body: { action: "request_changes", note: "Please move the start date." },
+        idempotencyKey: nextIdempotencyKey(),
       }),
       contractParams("contract-001")
     );
@@ -480,6 +496,7 @@ describe("Management closes the client change and cancellation loop", () => {
           method: "POST",
           as: USERS.oakLegal,
           body: { action: "request_cancellation", note: "Still want out." },
+          idempotencyKey: nextIdempotencyKey(),
         }),
         contractParams("contract-002")
       )
@@ -532,5 +549,68 @@ describe("Contract completion", () => {
     );
 
     expect(result.status).toBe(403);
+  });
+});
+
+describe("Client-visible service events are sanitized", () => {
+  it("never returns an internal-only service event to the client", async () => {
+    await insertServiceEvent({
+      id: "event-internal-only",
+      organisationId: "org-oak-legal",
+      contractId: "contract-002",
+      campaignId: "campaign-002",
+      workOrderId: "work-order-001",
+      at: "2027-01-14T10:00:00Z",
+      type: "internal_note",
+      title: "Margin renegotiated with the media owner",
+      clientVisible: false,
+      clientSummary: null,
+    });
+
+    const result = await readJson(
+      await getClientContract(
+        makeRequest("/client/contracts/contract-002", { as: USERS.oakLegal }),
+        contractParams("contract-002")
+      )
+    );
+
+    expect(result.status).toBe(200);
+
+    const ids = result.body.serviceEvents.map((event: any) => event.id);
+    expect(ids).not.toContain("event-internal-only");
+    expect(result.body.serviceEvents.every((event: any) => event.clientVisible)).toBe(
+      true
+    );
+    expect(JSON.stringify(result.body)).not.toContain("Margin renegotiated");
+  });
+
+  it("does not leak work-order internal notes into the client payload", async () => {
+    const result = await readJson(
+      await getClientContract(
+        makeRequest("/client/contracts/contract-002", { as: USERS.oakLegal }),
+        contractParams("contract-002")
+      )
+    );
+
+    const raw = JSON.stringify(result.body);
+
+    expect(result.status).toBe(200);
+    expect(raw).not.toContain("internalNotes");
+    expect(raw).not.toContain("Depot contact details");
+  });
+
+  it("does not leak another organisation's records into the client payload", async () => {
+    const result = await readJson(
+      await getClientContract(
+        makeRequest("/client/contracts/contract-002", { as: USERS.oakLegal }),
+        contractParams("contract-002")
+      )
+    );
+
+    const raw = JSON.stringify(result.body);
+
+    expect(raw).not.toContain("org-lighthouse");
+    expect(raw).not.toContain("org-silverline");
+    expect(raw).not.toContain("contract-001");
   });
 });

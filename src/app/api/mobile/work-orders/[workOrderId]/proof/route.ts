@@ -6,9 +6,10 @@ import {
   readIdempotencyKey,
   validateIdempotencyKey,
   withIdempotency,
-} from "@/lib/domain/idempotency";
+} from "@/lib/api/idempotency";
 import { FIXTURE_CLOCK } from "@/lib/constants";
-import { newProofRecordId, newServiceEventId } from "@/lib/ids";
+import { newProofRecordId, newServiceEventId } from "@/lib/db/ids";
+import { notFound, validationError } from "@/lib/api/responses";
 
 const MAX_PROOF_BYTES = 2 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
@@ -29,10 +30,7 @@ export const POST = async (
     const workOrder = await workOrdersCol.findOne({ id: workOrderId });
 
     if (!workOrder) {
-      return NextResponse.json(
-        { code: "NOT_FOUND", message: `Work order '${workOrderId}' not found` },
-        { status: 404 }
-      );
+      return notFound(`Work order '${workOrderId}' not found`);
     }
 
     if (guard.user.role === "fitter" && workOrder.assignedUserId !== guard.user.id) {
@@ -52,55 +50,29 @@ export const POST = async (
 
     const form = await req.formData().catch(() => null);
     if (!form) {
-      return NextResponse.json(
-        {
-          code: "VALIDATION_ERROR",
-          message: "Expected multipart/form-data with 'file' and 'completionNote'.",
-        },
-        { status: 422 }
-      );
+      return validationError("Expected multipart/form-data with 'file' and 'completionNote'.");
     }
 
     const completionNote = String(form.get("completionNote") ?? "").trim();
     if (completionNote.length < 3) {
-      return NextResponse.json(
-        {
-          code: "VALIDATION_ERROR",
-          message: "A completion note of at least 3 characters is required.",
-        },
-        { status: 422 }
-      );
+      return validationError("A completion note of at least 3 characters is required.");
     }
 
     const file = form.get("file");
     if (!(file instanceof File) || file.size === 0) {
-      return NextResponse.json(
-        {
-          code: "VALIDATION_ERROR",
-          message: "At least one proof attachment is required.",
-        },
-        { status: 422 }
-      );
+      return validationError("At least one proof attachment is required.");
     }
 
     if (file.size > MAX_PROOF_BYTES) {
-      return NextResponse.json(
-        {
-          code: "VALIDATION_ERROR",
-          message: `Proof attachments are capped at ${MAX_PROOF_BYTES / 1024 / 1024}MB in this prototype.`,
-        },
-        { status: 422 }
+      return validationError(
+        `Proof attachments are capped at ${MAX_PROOF_BYTES / 1024 / 1024}MB in this prototype.`
       );
     }
 
     const contentType = file.type || "application/octet-stream";
     if (!ALLOWED_TYPES.includes(contentType)) {
-      return NextResponse.json(
-        {
-          code: "VALIDATION_ERROR",
-          message: `Unsupported proof type '${contentType}'. Allowed: ${ALLOWED_TYPES.join(", ")}.`,
-        },
-        { status: 422 }
+      return validationError(
+        `Unsupported proof type '${contentType}'. Allowed: ${ALLOWED_TYPES.join(", ")}.`
       );
     }
 

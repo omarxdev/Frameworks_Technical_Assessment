@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { validateIdempotencyKey } from "@/lib/domain/idempotency";
+import { validateIdempotencyKey } from "@/lib/api/idempotency";
 
 describe("Idempotency Validation", () => {
   it("accepts valid keys of 8 or more characters", () => {

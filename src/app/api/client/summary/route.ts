@@ -48,6 +48,7 @@ export const GET = async (req: NextRequest) => {
     for (const c of orgContracts) {
       if (c.status === "issued") {
         attentionItems.push({
+          id: `contract_issued-${c.id}`,
           type: "contract_issued",
           title: "Contract Ready for Review",
           message: `Contract ${c.id} (£${c.total.toLocaleString()}) is awaiting your acceptance.`,
@@ -60,6 +61,7 @@ export const GET = async (req: NextRequest) => {
     const pendingRequests = clientRequests.filter((r) => r.status === "submitted");
     for (const r of pendingRequests) {
       attentionItems.push({
+        id: `request_pending-${r.id}`,
         type: "request_pending",
         title: "Change Request Under Review",
         message: `Your request "${r.summary || "Contract update"}" is being reviewed by management.`,

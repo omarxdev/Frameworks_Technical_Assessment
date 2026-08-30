@@ -7,10 +7,12 @@ import {
   readIdempotencyKey,
   validateIdempotencyKey,
   withIdempotency,
-} from "@/lib/domain/idempotency";
+} from "@/lib/api/idempotency";
 import { FIXTURE_CLOCK } from "@/lib/constants";
 import { formatDay } from "@/lib/format";
-import { newServiceEventId, newWorkOrderId } from "@/lib/ids";
+import { isValidDateRange } from "@/lib/domain/availability/date-range";
+import { newServiceEventId, newWorkOrderId } from "@/lib/db/ids";
+import { notFound, validationError } from "@/lib/api/responses";
 
 export const GET = async (req: NextRequest) => {
   try {
@@ -98,25 +100,19 @@ export const POST = async (req: NextRequest) => {
     const body = await req.json();
     const parseResult = WorkOrderCreateSchema.safeParse(body);
     if (!parseResult.success) {
-      return NextResponse.json(
-        {
-          code: "VALIDATION_ERROR",
-          message: "Invalid work order creation payload",
-          details: parseResult.error.flatten(),
-        },
-        { status: 422 }
-      );
+      return validationError("Invalid work order creation payload", parseResult.error.flatten());
     }
 
     const data = parseResult.data;
 
+    if (!isValidDateRange(data.scheduledStart, data.scheduledEnd)) {
+      return validationError("scheduledStart must be strictly before scheduledEnd");
+    }
+
     const contractsCol = await collections.contracts();
     const contract = await contractsCol.findOne({ id: data.contractId });
     if (!contract) {
-      return NextResponse.json(
-        { code: "NOT_FOUND", message: `Contract '${data.contractId}' not found` },
-        { status: 404 }
-      );
+      return notFound(`Contract '${data.contractId}' not found`);
     }
 
     const idempotency = await withIdempotency({

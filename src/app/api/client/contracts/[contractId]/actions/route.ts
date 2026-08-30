@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireClientOrganisation } from "@/lib/auth/session";
+import { forbidden, requireClientOrganisation } from "@/lib/auth/session";
 import { collections } from "@/lib/db/collections";
 import { ClientContractActionSchema } from "@/lib/schemas";
 import { canTransitionContract } from "@/lib/domain/contracts/state-machine";
@@ -10,10 +10,14 @@ import {
   newCampaignId,
   newClientRequestId,
   newServiceEventId,
-} from "@/lib/ids";
-
-const conflict = (message: string) =>
-  NextResponse.json({ code: "CONFLICT", message }, { status: 409 });
+} from "@/lib/db/ids";
+import {
+  missingKeyResponse,
+  readIdempotencyKey,
+  validateIdempotencyKey,
+  withIdempotency,
+} from "@/lib/api/idempotency";
+import { conflict, notFound, validationError } from "@/lib/api/responses";
 
 export const POST = async (
   req: NextRequest,
@@ -26,40 +30,35 @@ export const POST = async (
     const { user, organisation } = guard;
     const { contractId } = await params;
 
+    const key = readIdempotencyKey(req);
+    if (!validateIdempotencyKey(key)) return missingKeyResponse();
+
     const contractsCol = await collections.contracts();
     const contract = await contractsCol.findOne({ id: contractId });
 
     if (!contract) {
-      return NextResponse.json(
-        { code: "NOT_FOUND", message: `Contract '${contractId}' not found` },
-        { status: 404 }
-      );
+      return notFound(`Contract '${contractId}' not found`);
     }
 
     if (contract.organisationId !== organisation.id) {
-      return NextResponse.json(
-        {
-          code: "FORBIDDEN",
-          message: "You cannot access this organisation's record.",
-        },
-        { status: 403 }
-      );
+      return forbidden("You cannot access this organisation's record.");
     }
 
     const body = await req.json();
     const parsed = ClientContractActionSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json(
-        {
-          code: "VALIDATION_ERROR",
-          message: "Invalid action payload",
-          details: parsed.error.flatten(),
-        },
-        { status: 422 }
-      );
+      return validationError("Invalid action payload", parsed.error.flatten());
     }
 
     const { action, note } = parsed.data;
+
+    const idempotency = await withIdempotency({
+      scope: `client-contract-action:${contractId}`,
+      actorId: user.id,
+      key: key!,
+      body: parsed.data,
+    });
+    if (idempotency.kind !== "proceed") return idempotency.response;
 
     const campaignsCol = await collections.campaigns();
     const serviceEventsCol = await collections.serviceEvents();
@@ -214,12 +213,8 @@ export const POST = async (
       }
 
       if (!note?.trim()) {
-        return NextResponse.json(
-          {
-            code: "VALIDATION_ERROR",
-            message: "Describe the change you need so management can review it.",
-          },
-          { status: 422 }
+        return validationError(
+          "Describe the change you need so management can review it."
         );
       }
 
@@ -271,12 +266,8 @@ export const POST = async (
       }
 
       if (!note?.trim()) {
-        return NextResponse.json(
-          {
-            code: "VALIDATION_ERROR",
-            message: "Give a reason so management can review the cancellation.",
-          },
-          { status: 422 }
+        return validationError(
+          "Give a reason so management can review the cancellation."
         );
       }
 
@@ -318,12 +309,15 @@ export const POST = async (
       .toArray();
     const clientRequests = await clientRequestsCol.find({ contractId }).toArray();
 
-    return NextResponse.json({
+    const responseBody = {
       ...contractData,
       campaign: campaign ? (({ _id: cid, ...c }) => c)(campaign) : null,
       serviceEvents: serviceEvents.map(({ _id: sid, ...se }) => se),
       clientRequests: clientRequests.map(({ _id: rid, ...cr }) => cr),
-    });
+    };
+
+    await idempotency.commit(responseBody, 200);
+    return NextResponse.json(responseBody);
   } catch (error: any) {
     return NextResponse.json(
       {

@@ -7,10 +7,11 @@ import {
   readIdempotencyKey,
   validateIdempotencyKey,
   withIdempotency,
-} from "@/lib/domain/idempotency";
+} from "@/lib/api/idempotency";
 import { isValidDateRange } from "@/lib/domain/availability/date-range";
 import { FIXTURE_CLOCK } from "@/lib/constants";
-import { newContractId } from "@/lib/ids";
+import { newContractId } from "@/lib/db/ids";
+import { notFound, validationError } from "@/lib/api/responses";
 
 export const POST = async (req: NextRequest) => {
   try {
@@ -23,38 +24,19 @@ export const POST = async (req: NextRequest) => {
     const body = await req.json();
     const parsed = ContractCreateSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json(
-        {
-          code: "VALIDATION_ERROR",
-          message: "Invalid contract creation parameters",
-          details: parsed.error.flatten(),
-        },
-        { status: 422 }
-      );
+      return validationError("Invalid contract creation parameters", parsed.error.flatten());
     }
 
     const data = parsed.data;
 
     if (!isValidDateRange(data.startDate, data.endDate)) {
-      return NextResponse.json(
-        {
-          code: "VALIDATION_ERROR",
-          message: "startDate must be strictly before endDate",
-        },
-        { status: 422 }
-      );
+      return validationError("startDate must be strictly before endDate");
     }
 
     const orgsCol = await collections.organisations();
     const org = await orgsCol.findOne({ id: data.organisationId });
     if (!org) {
-      return NextResponse.json(
-        {
-          code: "NOT_FOUND",
-          message: `Organisation '${data.organisationId}' not found`,
-        },
-        { status: 404 }
-      );
+      return notFound(`Organisation '${data.organisationId}' not found`);
     }
 
     const idempotency = await withIdempotency({

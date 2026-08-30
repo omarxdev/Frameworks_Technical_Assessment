@@ -51,6 +51,11 @@ export const getWorkOrder = async (id: string) => {
   return workOrders.findOne({ id });
 };
 
+export const insertServiceEvent = async (event: Record<string, unknown>) => {
+  const events = await collections.serviceEvents();
+  await events.insertOne({ _id: event.id, ...event } as never);
+};
+
 export const serviceEventsFor = async (contractId: string) => {
   const events = await collections.serviceEvents();
   return events.find({ contractId }).toArray();

@@ -167,6 +167,7 @@ describe("Required check 10: one connected journey across all three surfaces", (
           method: "POST",
           as: USERS.silverline,
           body: { action: "accept" },
+          idempotencyKey: "journey-contract-accept-key",
         }),
         { params: Promise.resolve({ contractId: journey.contractId! }) }
       )
