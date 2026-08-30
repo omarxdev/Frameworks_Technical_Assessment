@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { SessionGuard } from "@/components/shared/session-guard";
 import { FitterShell } from "@/features/fitter/components/fitter-shell";
 import { THEME_COLOR } from "@/lib/constants";
 
@@ -29,7 +30,11 @@ export const viewport: Viewport = {
 };
 
 const FitterLayout = ({ children }: { children: React.ReactNode }) => (
-  <FitterShell>{children}</FitterShell>
+  <FitterShell>
+    <SessionGuard requiredRole="fitter" surface="fitter app">
+      {children}
+    </SessionGuard>
+  </FitterShell>
 );
 
 export default FitterLayout;

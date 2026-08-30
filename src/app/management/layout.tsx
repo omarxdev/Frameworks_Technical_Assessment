@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SessionGuard } from "@/components/shared/session-guard";
 import { RoleSwitcher } from "@/components/shared/role-switcher";
 import { ManagementNav } from "@/features/management/components/management-nav";
 import { Eyebrow } from "@/components/ui/typography";
@@ -41,7 +42,9 @@ const ManagementLayout = ({ children }: { children: React.ReactNode }) => (
     </header>
 
     <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 md:py-8">
-      {children}
+      <SessionGuard requiredRole="manager" surface="management console">
+        {children}
+      </SessionGuard>
     </main>
   </div>
 );
